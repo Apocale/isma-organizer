@@ -1,0 +1,7 @@
+# cmd.exe misreads labels and goto in a batch file without CRLF line endings
+*.bat     text eol=crlf
+# bash refuses a script with CRLF line endings
+*.command text eol=lf
+*.sh      text eol=lf
+*.jpg     binary
+*.png     binary

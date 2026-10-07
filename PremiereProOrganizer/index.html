@@ -1,0 +1,4019 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Isma Organizer</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        /* ============ FRUTIGER AERO / VISTA ============ */
+
+        @keyframes bgDrift {
+            0%   { background-position: 0% 50%; }
+            50%  { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        @keyframes bubbleFloat {
+            0%   { transform: translateY(0) scale(1); }
+            50%  { transform: translateY(-18px) scale(1.05); }
+            100% { transform: translateY(0) scale(1); }
+        }
+        @keyframes glossSweep {
+            0%   { transform: translateX(-120%) skewX(-18deg); }
+            100% { transform: translateX(260%) skewX(-18deg); }
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        html { height: 100%; overflow-y: auto; }
+
+        body {
+            min-height: 100%;
+            padding: 10px;
+            font-family: "Segoe UI", "Lucida Grande", "Helvetica Neue", Helvetica, Arial, sans-serif;
+            font-size: 13px;
+            color: #0b3049;
+            background: linear-gradient(155deg,
+                #bfe6fb 0%, #7ec4ef 28%, #4d9fdc 55%, #6fc7b4 82%, #9fe0b8 100%);
+            background-size: 300% 300%;
+            animation: bgDrift 18s ease infinite;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* Aero background bubbles */
+        .bubble {
+            position: fixed;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 0;
+            background: radial-gradient(circle at 32% 28%,
+                rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.25) 24%,
+                rgba(255,255,255,0.05) 55%, rgba(255,255,255,0.18) 100%);
+            border: 1px solid rgba(255,255,255,0.45);
+            animation: bubbleFloat 9s ease-in-out infinite;
+        }
+        .bubble.b1 { width: 110px; height: 110px; top: -30px;  right: -25px; }
+        .bubble.b2 { width: 60px;  height: 60px;  bottom: 90px; left: -18px; animation-delay: -3s; }
+        .bubble.b3 { width: 34px;  height: 34px;  bottom: 30px; right: 22px; animation-delay: -6s; }
+
+        .title {
+            text-align: center;
+            font-size: 19px;
+            font-weight: 700;
+            letter-spacing: 2.5px;
+            text-transform: uppercase;
+            margin: 8px 0 12px;
+            color: #ffffff;
+            text-shadow: 0 1px 2px rgba(10, 60, 110, 0.55),
+                         0 0 14px rgba(255, 255, 255, 0.45);
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Glass panel */
+        .container {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            padding: 14px 12px 12px;
+            border-radius: 14px;
+            background: linear-gradient(180deg,
+                rgba(255,255,255,0.62) 0%, rgba(255,255,255,0.34) 48%,
+                rgba(255,255,255,0.22) 52%, rgba(255,255,255,0.38) 100%);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255,255,255,0.8);
+            box-shadow: 0 10px 26px rgba(15, 60, 105, 0.28),
+                        inset 0 1px 0 rgba(255,255,255,0.95);
+            overflow: hidden;
+        }
+        /* Glassy highlight at top of panel */
+        .container::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 46%;
+            background: linear-gradient(180deg,
+                rgba(255,255,255,0.5), rgba(255,255,255,0.02));
+            border-radius: 14px 14px 60% 60% / 14px 14px 22px 22px;
+            pointer-events: none;
+        }
+
+        .section-label {
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            color: #135a8c;
+            margin: 10px 0 6px;
+            position: relative;
+        }
+        .section-label:first-child { margin-top: 0; }
+
+        .field {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            align-items: center;
+            gap: 3px 8px;
+            margin-bottom: 6px;
+            position: relative;
+        }
+
+        .field label {
+            color: #0b3049;
+            font-weight: 600;
+            font-size: 11.5px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .field .hint {
+            grid-column: 1 / -1;
+            font-size: 9px;
+            color: #2d6a94;
+            margin-top: -2px;
+            margin-bottom: 2px;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 5px 9px;
+            font-size: 12px;
+            font-family: inherit;
+            color: #0b3049;
+            border: 1px solid rgba(60, 120, 170, 0.55);
+            border-radius: 6px;
+            background: linear-gradient(180deg,
+                rgba(255,255,255,0.95) 0%, rgba(240,250,255,0.85) 100%);
+            box-shadow: inset 0 1px 3px rgba(30, 80, 130, 0.18),
+                        0 1px 0 rgba(255,255,255,0.7);
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #2e8fd8;
+            box-shadow: inset 0 1px 3px rgba(30, 80, 130, 0.18),
+                        0 0 8px rgba(80, 170, 235, 0.65);
+        }
+        input::placeholder { color: #7aa5c2; }
+
+        select {
+            width: 100%;
+            padding: 4px 8px;
+            font-size: 12px;
+            font-family: inherit;
+            color: #0b3049;
+            border: 1px solid rgba(60, 120, 170, 0.55);
+            border-radius: 6px;
+            background: linear-gradient(180deg,
+                rgba(255,255,255,0.95) 0%, rgba(226,242,252,0.9) 100%);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.9),
+                        0 1px 2px rgba(15, 60, 105, 0.12);
+            cursor: pointer;
+        }
+        select:focus {
+            outline: none;
+            border-color: #2e8fd8;
+            box-shadow: 0 0 8px rgba(80, 170, 235, 0.65);
+        }
+
+        /* Aero toggle switch */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 40px;
+            height: 21px;
+            justify-self: start;
+        }
+        .switch input {
+            position: absolute;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            cursor: pointer;
+            z-index: 2;
+        }
+        .switch .track {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            border-radius: 21px;
+            background: linear-gradient(180deg,
+                rgba(196,218,234,0.95) 0%, rgba(228,241,250,0.8) 100%);
+            border: 1px solid rgba(60, 120, 170, 0.5);
+            box-shadow: inset 0 1px 3px rgba(30, 80, 130, 0.25);
+            transition: background 0.2s, border-color 0.2s;
+        }
+        .switch .track::before {
+            content: '';
+            position: absolute;
+            top: 2px; left: 2px;
+            width: 15px; height: 15px;
+            border-radius: 50%;
+            background: linear-gradient(180deg, #ffffff 0%, #dcebf7 100%);
+            box-shadow: 0 1px 3px rgba(15, 60, 105, 0.45),
+                        inset 0 1px 0 rgba(255,255,255,0.95);
+            transition: transform 0.2s;
+        }
+        .switch input:checked + .track {
+            background: linear-gradient(180deg,
+                #a8e8a0 0%, #5ecb5e 45%, #33a83c 55%, #4dbf52 100%);
+            border-color: rgba(25, 105, 45, 0.8);
+        }
+        .switch input:checked + .track::before { transform: translateX(19px); }
+        .switch input:focus-visible + .track {
+            box-shadow: inset 0 1px 3px rgba(30, 80, 130, 0.2),
+                        0 0 8px rgba(80, 170, 235, 0.8);
+        }
+
+        /* Auto-organize status line under the buttons */
+        #auto-status {
+            display: none;
+            margin: -2px 0 10px;
+            font-size: 10.5px;
+            font-weight: 600;
+            text-align: center;
+            color: #135a8c;
+            text-shadow: 0 1px 0 rgba(255,255,255,0.65);
+            position: relative;
+            z-index: 1;
+        }
+        #auto-status.on { display: block; }
+        #auto-status .dot { color: #2fa845; }
+        #auto-status.idle .dot { color: #b08a2a; }
+        #auto-status a.nudge { color: #a35b00; text-decoration: underline; cursor: pointer; }
+
+        /* Pinterest bridge — same register as the auto-organize line, so the
+           two live indicators read as one family rather than two designs. */
+        #bridge-status {
+            display: none;
+            margin: -2px 0 10px;
+            font-size: 10.5px;
+            font-weight: 600;
+            text-align: center;
+            color: #135a8c;
+            text-shadow: 0 1px 0 rgba(255,255,255,0.65);
+            position: relative;
+            z-index: 1;
+        }
+        #bridge-status.on { display: block; }
+        #bridge-status .dot { color: #2fa845; }
+        #bridge-status.idle .dot { color: #b08a2a; }
+        #bridge-status.warn { color: #a35b00; }
+        #bridge-status.warn .dot { color: #d08b1e; }
+
+        .divider {
+            border: none;
+            border-top: 1px solid rgba(30, 90, 140, 0.25);
+            box-shadow: 0 1px 0 rgba(255,255,255,0.6);
+            margin: 10px 0;
+            position: relative;
+        }
+
+        .btns {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 10px;
+            position: relative;
+        }
+
+        /* Subtle "More settings" button */
+        #toggle-params {
+            padding: 7px 12px;
+            font-size: 11.5px;
+            font-weight: 600;
+            color: #135a8c;
+            text-shadow: 0 1px 0 rgba(255,255,255,0.7);
+            border: 1px solid rgba(70, 130, 180, 0.45);
+            background: linear-gradient(180deg,
+                rgba(255,255,255,0.7) 0%, rgba(235,248,255,0.45) 100%);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.85),
+                        0 2px 6px rgba(15, 60, 105, 0.12);
+            margin-bottom: 4px;
+        }
+        #toggle-params::after { content: none; animation: none; }
+        #toggle-params:hover { filter: none; background: linear-gradient(180deg,
+                rgba(255,255,255,0.85) 0%, rgba(235,248,255,0.6) 100%); }
+
+        /* Same quiet look as "More settings": a diagnostic is not an action
+           on the project, and must not read like the green Organize button. */
+        #diag-btn {
+            padding: 7px 12px;
+            font-size: 11.5px;
+            font-weight: 600;
+            color: #135a8c;
+            text-shadow: 0 1px 0 rgba(255,255,255,0.7);
+            border: 1px solid rgba(70, 130, 180, 0.45);
+            background: linear-gradient(180deg,
+                rgba(255,255,255,0.7) 0%, rgba(235,248,255,0.45) 100%);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.85),
+                        0 2px 6px rgba(15, 60, 105, 0.12);
+        }
+        #diag-btn::after { content: none; animation: none; }
+        #diag-btn:hover { filter: none; background: linear-gradient(180deg,
+                rgba(255,255,255,0.85) 0%, rgba(235,248,255,0.6) 100%); }
+
+        #report .diag-line {
+            font-family: "SF Mono", Menlo, Consolas, monospace;
+            font-size: 10.5px;
+        }
+
+        /* Settings section collapsed by default */
+        #params { display: none; margin-top: 8px; }
+        #params.open { display: block; }
+
+        #report { margin-bottom: 10px; }
+
+        /* Glossy green Vista button */
+        button {
+            position: relative;
+            width: 100%;
+            padding: 10px 12px;
+            font-size: 13.5px;
+            font-family: inherit;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            color: #ffffff;
+            text-shadow: 0 1px 2px rgba(0, 70, 20, 0.55);
+            border: 1px solid rgba(25, 105, 45, 0.85);
+            border-radius: 8px;
+            cursor: pointer;
+            overflow: hidden;
+            background: linear-gradient(180deg,
+                #a8e8a0 0%, #5ecb5e 45%, #33a83c 50%, #4dbf52 100%);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.75),
+                        inset 0 -1px 6px rgba(255,255,255,0.25),
+                        0 3px 9px rgba(15, 80, 30, 0.35);
+            transition: filter 0.15s, transform 0.1s;
+        }
+        button::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0;
+            width: 45%; height: 100%;
+            background: linear-gradient(90deg,
+                rgba(255,255,255,0) 0%, rgba(255,255,255,0.45) 50%,
+                rgba(255,255,255,0) 100%);
+            animation: glossSweep 3.5s ease-in-out infinite;
+            pointer-events: none;
+        }
+        button:hover  { filter: brightness(1.08); }
+        button:active { transform: scale(0.98); filter: brightness(0.95); }
+        button:disabled { filter: saturate(0.4) brightness(0.9); cursor: not-allowed; }
+        button:disabled::after { animation: none; }
+
+        /* Glossy orange Vista button — Back to normal */
+        #reset-btn {
+            padding: 8px 12px;
+            font-size: 12.5px;
+            text-shadow: 0 1px 2px rgba(95, 55, 0, 0.55);
+            border: 1px solid rgba(150, 90, 15, 0.85);
+            background: linear-gradient(180deg,
+                #ffd98f 0%, #f5a83d 45%, #e08a12 50%, #f0a437 100%);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.75),
+                        inset 0 -1px 6px rgba(255,255,255,0.25),
+                        0 3px 9px rgba(120, 70, 10, 0.35);
+        }
+        #reset-btn::after { animation: none; }
+        /* Confirm state: glossy red */
+        #reset-btn.confirm {
+            border-color: rgba(150, 30, 20, 0.85);
+            background: linear-gradient(180deg,
+                #ff9d8f 0%, #ef5b47 45%, #d63a24 50%, #e5533d 100%);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.7),
+                        inset 0 -1px 6px rgba(255,255,255,0.2),
+                        0 3px 9px rgba(120, 25, 15, 0.4),
+                        0 0 12px rgba(230, 70, 50, 0.55);
+            text-shadow: 0 1px 2px rgba(100, 15, 5, 0.6);
+        }
+
+        /* Organize + Preview side by side */
+        .btns-row { display: flex; gap: 8px; }
+        .btns-row #organize-btn { flex: 1 1 auto; }
+        .btns-row #preview-btn { flex: 0 0 38%; }
+
+        /* Glossy blue — Preview: looks, never touches the project */
+        #preview-btn {
+            text-shadow: 0 1px 2px rgba(0, 40, 90, 0.55);
+            border: 1px solid rgba(20, 80, 140, 0.85);
+            background: linear-gradient(180deg,
+                #b9e3ff 0%, #5db4f0 45%, #2f8fd6 50%, #4aa3e2 100%);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.75),
+                        inset 0 -1px 6px rgba(255,255,255,0.25),
+                        0 3px 9px rgba(15, 60, 105, 0.35);
+        }
+        #preview-btn::after { animation: none; }
+
+        /* Glossy teal — Undo: the safety net, shown only when there is one */
+        #undo-btn {
+            padding: 8px 12px;
+            font-size: 12.5px;
+            text-shadow: 0 1px 2px rgba(0, 60, 55, 0.55);
+            border: 1px solid rgba(15, 110, 100, 0.85);
+            background: linear-gradient(180deg,
+                #b5efe6 0%, #4fc9b8 45%, #23a894 50%, #3dbba7 100%);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.75),
+                        inset 0 -1px 6px rgba(255,255,255,0.25),
+                        0 3px 9px rgba(10, 80, 70, 0.35);
+        }
+        #undo-btn::after { animation: none; }
+
+        /* Full re-sort lives in the settings and looks like Back to normal:
+           both move things the user may have placed on purpose. */
+        #full-btn {
+            padding: 8px 12px;
+            font-size: 12.5px;
+            text-shadow: 0 1px 2px rgba(95, 55, 0, 0.55);
+            border: 1px solid rgba(150, 90, 15, 0.85);
+            background: linear-gradient(180deg,
+                #ffd98f 0%, #f5a83d 45%, #e08a12 50%, #f0a437 100%);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.75),
+                        inset 0 -1px 6px rgba(255,255,255,0.25),
+                        0 3px 9px rgba(120, 70, 10, 0.35);
+        }
+        #full-btn::after { animation: none; }
+        #full-btn.confirm {
+            border-color: rgba(150, 30, 20, 0.85);
+            background: linear-gradient(180deg,
+                #ff9d8f 0%, #ef5b47 45%, #d63a24 50%, #e5533d 100%);
+            text-shadow: 0 1px 2px rgba(100, 15, 5, 0.6);
+        }
+
+        /* "Apply" inside a preview report */
+        #report #apply-btn {
+            margin-top: 8px;
+            padding: 7px 10px;
+            font-size: 12px;
+        }
+        #report .samples { color: #2d6a94; font-size: 10.5px; }
+
+        /* Final report */
+        #report {
+            display: none;
+            padding: 10px 12px;
+            border-radius: 10px;
+            background: linear-gradient(180deg,
+                rgba(255,255,255,0.75), rgba(235,250,255,0.55));
+            border: 1px solid rgba(255,255,255,0.85);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.9),
+                        0 3px 10px rgba(15, 60, 105, 0.18);
+            font-size: 12px;
+            line-height: 1.65;
+            color: #0b3049;
+            position: relative;
+            z-index: 1;
+        }
+        #report .report-title {
+            font-weight: 700;
+            font-size: 12.5px;
+            color: #14733a;
+            margin-bottom: 4px;
+        }
+        #report .report-why {
+            font-weight: 600;
+            font-size: 10.5px;
+            color: #2d6a94;
+        }
+        #report .report-total {
+            margin-top: 4px;
+            padding-top: 4px;
+            border-top: 1px solid rgba(30, 90, 140, 0.2);
+            font-weight: 700;
+        }
+
+        /* ============ ONE PANEL, TWO TABS ============
+           Organize = the organizer as it was; B-roll = the former "Pinterest
+           B-roll" panel (merged 2026-10-07). The B-roll rules below are its own,
+           scoped to #tab-broll so the two never restyle each other. */
+        .tabs { display: flex; position: relative; z-index: 1; margin: 0 0 10px;
+                border: 1px solid rgba(60,120,170,.55); border-radius: 8px; overflow: hidden;
+                box-shadow: inset 0 1px 0 rgba(255,255,255,.85); }
+        .tabs button { flex: 1 1 0; width: auto; padding: 0; height: 30px; border: 0; border-radius: 0;
+                       font-size: 12.5px; font-weight: 700; letter-spacing: .4px; color: #135a8c;
+                       text-shadow: 0 1px 0 rgba(255,255,255,.7); box-shadow: none;
+                       background: linear-gradient(180deg, rgba(255,255,255,.72) 0%, rgba(228,244,255,.5) 100%); }
+        .tabs button + button { border-left: 1px solid rgba(60,120,170,.35); }
+        .tabs button.on { color: #08344f; background: linear-gradient(180deg, #a9dcf7 0%, #74b8e6 100%);
+                          box-shadow: inset 0 1px 3px rgba(20,70,120,.3); }
+        .tabs button::after { content: none; animation: none; }
+        .tabs button:hover { filter: brightness(1.04); }
+        .tabs button:active { transform: none; }
+        .tabs button:focus-visible { outline: 2px solid #2e8fd8; outline-offset: -2px; }
+
+        #tab-broll { display: none; }
+        html.broll-mode { overflow: hidden; }
+        html.broll-mode body { height: 100%; display: flex; flex-direction: column; overflow: hidden; }
+        html.broll-mode #tab-organize { display: none; }
+        html.broll-mode #tab-broll { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; font-size: 12px; }
+
+        /* The organizer styles every <button> as its big glossy green one;
+           inside the B-roll tab that would leak onto every small control. */
+        #tab-broll button { width: auto; padding: 0; letter-spacing: normal; text-shadow: none; border-radius: 0;
+                            box-shadow: none; transition: none; overflow: visible; filter: none; }
+        #tab-broll button::after { content: none; animation: none; }
+        #tab-broll button:hover, #tab-broll button:active, #tab-broll button:disabled { filter: none; transform: none; }
+
+        /* ---- B-roll tab (former Pinterest B-roll panel), scoped ---- */
+        #tab-broll .shell { position: relative; z-index: 1; flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; padding: 10px 9px 9px; border-radius: 14px; background: linear-gradient(180deg, rgba(255,255,255,0.62) 0%, rgba(255,255,255,0.34) 48%, rgba(255,255,255,0.22) 52%, rgba(255,255,255,0.38) 100%); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.8); box-shadow: 0 10px 26px rgba(15, 60, 105, 0.28), inset 0 1px 0 rgba(255,255,255,0.95); overflow: hidden; }
+        #tab-broll .shell::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 40%; background: linear-gradient(180deg, rgba(255,255,255,0.5), rgba(255,255,255,0.02)); border-radius: 14px 14px 60% 60% / 14px 14px 22px 22px; pointer-events: none; }
+        #tab-broll .row { display: flex; gap: 6px; align-items: center; position: relative; }
+        #tab-broll .row + .row { margin-top: 6px; }
+        #tab-broll input[type="search"], #tab-broll input[type="text"] { flex: 1 1 auto; min-width: 0; height: 26px; padding: 0 9px; font: inherit; font-size: 12px; color: #0b3049; border: 1px solid rgba(60, 120, 170, 0.55); border-radius: 6px; background: linear-gradient(180deg, rgba(255,255,255,0.95) 0%, rgba(240,250,255,0.85) 100%); box-shadow: inset 0 1px 3px rgba(30, 80, 130, 0.18), 0 1px 0 rgba(255,255,255,0.7); }
+        #tab-broll input:focus { outline: none; border-color: #2e8fd8; box-shadow: inset 0 1px 3px rgba(30,80,130,.18), 0 0 8px rgba(80,170,235,.65); }
+        #tab-broll input::placeholder { color: #7aa5c2; }
+        #tab-broll .seg { display: flex; flex: 0 0 auto; border: 1px solid rgba(60,120,170,.55); border-radius: 6px; overflow: hidden; box-shadow: inset 0 1px 0 rgba(255,255,255,.85); }
+        #tab-broll .seg button { border: 0; height: 26px; padding: 0 9px; font: inherit; font-size: 11px; font-weight: 600; color: #135a8c; cursor: pointer; background: linear-gradient(180deg, rgba(255,255,255,.72) 0%, rgba(228,244,255,.5) 100%); }
+        #tab-broll .seg button + button { border-left: 1px solid rgba(60,120,170,.35); }
+        #tab-broll .seg button.on { color: #08344f; background: linear-gradient(180deg, #a9dcf7 0%, #74b8e6 100%); box-shadow: inset 0 1px 3px rgba(20,70,120,.3); }
+        #tab-broll button.ghost { flex: 0 0 auto; height: 26px; padding: 0 10px; font: inherit; font-size: 12px; font-weight: 600; color: #135a8c; cursor: pointer; text-shadow: 0 1px 0 rgba(255,255,255,.7); border: 1px solid rgba(70,130,180,.45); border-radius: 6px; background: linear-gradient(180deg, rgba(255,255,255,.7) 0%, rgba(235,248,255,.45) 100%); box-shadow: inset 0 1px 0 rgba(255,255,255,.85), 0 2px 6px rgba(15,60,105,.12); }
+        #tab-broll button.ghost:hover { background: linear-gradient(180deg, rgba(255,255,255,.9), rgba(235,248,255,.62)); }
+        #tab-broll button.ghost:disabled { opacity: .45; cursor: not-allowed; }
+        #tab-broll .count { flex: 0 0 auto; font-size: 10.5px; font-weight: 600; color: #135a8c; text-shadow: 0 1px 0 rgba(255,255,255,.65); white-space: nowrap; }
+        #tab-broll .count b { font-variant-numeric: tabular-nums; color: #08344f; }
+        #tab-broll .count.warn { color: #a35b00; }
+        #tab-broll .grid { flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden; margin-top: 8px; padding: 2px 2px 4px; display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); grid-auto-rows: max-content; gap: 8px; align-content: start; }
+        #tab-broll .card { position: relative; border-radius: 9px; overflow: hidden; cursor: pointer; border: 1px solid rgba(255,255,255,.75); background: linear-gradient(180deg, rgba(255,255,255,.66), rgba(226,243,255,.5)); box-shadow: 0 2px 7px rgba(15,60,105,.22), inset 0 1px 0 rgba(255,255,255,.9); transition: transform .12s ease, box-shadow .12s ease; }
+        #tab-broll .card:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(15,60,105,.34), inset 0 1px 0 rgba(255,255,255,.95); }
+        #tab-broll .card.sel { border-color: #e60023; box-shadow: 0 0 0 2px rgba(230,0,35,.55), 0 4px 12px rgba(15,60,105,.3); }
+        #tab-broll .card:active { cursor: grabbing; }
+        #tab-broll .thumb { position: relative; width: 100%; padding-top: 125%; background: #cfe3f2; overflow: hidden; }
+        #tab-broll .thumb > img, #tab-broll .thumb > video { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+        #tab-broll .thumb > video { opacity: 0; transition: opacity .18s ease; }
+        #tab-broll .thumb > video.on { opacity: 1; }
+        #tab-broll .thumb .spin { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; color: #7aa5c2; font-size: 15px; }
+        #tab-broll .thumb::after { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 38%; background: linear-gradient(180deg, rgba(255,255,255,.34), rgba(255,255,255,0)); pointer-events: none; }
+        #tab-broll .meta { padding: 4px 6px 5px; font-size: 9px; line-height: 1.25; color: #2d6a94; border-top: 1px solid rgba(255,255,255,.6); }
+        #tab-broll .meta .n { color: #0b3049; font-weight: 600; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; word-break: break-word; }
+        #tab-broll .meta .s { font-variant-numeric: tabular-nums; }
+        #tab-broll .badge { position: absolute; top: 5px; left: 5px; z-index: 2; padding: 1px 5px; border-radius: 4px; font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: #fff; background: rgba(11,48,73,.72); box-shadow: inset 0 1px 0 rgba(255,255,255,.25); }
+        #tab-broll .badge.have { background: rgba(20,140,70,.92); }
+        #tab-broll .badge.play { left: auto; right: 5px; background: rgba(230,0,35,.85); }
+        #tab-broll .empty { grid-column: 1 / -1; padding: 26px 14px; text-align: center; color: #2d6a94; font-size: 11.5px; }
+        #tab-broll .empty b { display: block; color: #0b3049; font-size: 13px; margin-bottom: 5px; }
+        [hidden] { display: none !important; }
+        #tab-broll .modes button { padding: 0 12px; font-size: 11.5px; }
+        #tab-broll .row.top { justify-content: space-between; }
+        #tab-broll .hintline { font-size: 10px; color: #2d6a94; text-shadow: 0 1px 0 rgba(255,255,255,.65); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        #tab-broll .card.pin .thumb { padding-top: 140%; }
+        #tab-broll .card.pin .thumb > img { background: #cfe3f2; }
+        #tab-broll .card.pin .dur { position: absolute; right: 5px; bottom: 5px; z-index: 2; padding: 1px 5px; border-radius: 4px; font-size: 8.5px; font-weight: 700; color: #fff; background: rgba(11,48,73,.72); font-variant-numeric: tabular-nums; }
+        #tab-broll .card.pin .dl { position: absolute; left: 0; right: 0; bottom: 0; height: 5px; z-index: 3; background: rgba(11,48,73,.35); }
+        #tab-broll .card.pin .dl > i { display: block; height: 100%; width: 0; background: #e60023; transition: width .2s ease; }
+        #tab-broll .card.pin .state { position: absolute; left: 0; right: 0; bottom: 0; z-index: 3; padding: 3px 6px; font-size: 9px; font-weight: 600; color: #fff; background: linear-gradient(0deg, rgba(11,48,73,.85), rgba(11,48,73,0)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        #tab-broll .card.pin.saved { border-color: #23a894; box-shadow: 0 0 0 2px rgba(35,168,148,.45), 0 4px 12px rgba(15,60,105,.3); cursor: grab; }
+        #tab-broll .card.pin.saved:active { cursor: grabbing; }
+        #tab-broll .card.pin.failed { border-color: #c0392b; }
+        #tab-broll .card.pin .meta .p { color: #2d6a94; font-size: 8.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        #tab-broll .card.pin .badge.get { background: rgba(230,0,35,.85); }
+        #tab-broll .card.pin .badge.have { background: rgba(20,140,70,.92); }
+        #tab-broll #lightbox { position: fixed; inset: 0; z-index: 50; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 14px; background: rgba(6, 28, 46, .78); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+        #tab-broll #lightbox[hidden] { display: none; }
+        #tab-broll #lb-frame { position: relative; width: 100%; max-width: 900px; max-height: calc(100% - 64px); display: flex; flex-direction: column; border-radius: 12px; overflow: hidden; cursor: grab; border: 1px solid rgba(255,255,255,.8); background: linear-gradient(180deg, rgba(255,255,255,.7), rgba(226,243,255,.55)); box-shadow: 0 18px 44px rgba(0, 20, 40, .55), inset 0 1px 0 rgba(255,255,255,.95); }
+        #tab-broll #lb-frame:active { cursor: grabbing; }
+        #tab-broll #lb-stage { position: relative; flex: 1 1 auto; min-height: 160px; display: flex; align-items: center; justify-content: center; background: #0b1b28; }
+        #tab-broll #lb-stage > video, #tab-broll #lb-stage > img { display: block; max-width: 100%; max-height: 62vh; width: auto; height: auto; object-fit: contain; }
+        #tab-broll #lb-bar { flex: 0 0 auto; display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-top: 1px solid rgba(255,255,255,.6); }
+        #tab-broll #lb-text { flex: 1 1 auto; min-width: 0; }
+        #tab-broll #lb-name { font-size: 12.5px; font-weight: 700; color: #0b3049; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        #tab-broll #lb-info { font-size: 10px; color: #2d6a94; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
+        #tab-broll #lb-hint { flex: 0 0 auto; font-size: 10px; color: #2d6a94; white-space: nowrap; }
+        #tab-broll #lb-hint b { display: inline-block; padding: 0 4px; border: 1px solid rgba(60,120,170,.45); border-radius: 4px; background: rgba(255,255,255,.7); color: #135a8c; font-weight: 600; }
+        #tab-broll #lb-bar button.ghost { height: 24px; padding: 0 8px; font-size: 12px; }
+        #tab-broll #lb-close { position: absolute; top: 8px; right: 8px; z-index: 3; width: 26px; height: 26px; padding: 0; border-radius: 50%; font: inherit; font-size: 15px; line-height: 24px; text-align: center; cursor: pointer; color: #fff; background: rgba(11,48,73,.72); border: 1px solid rgba(255,255,255,.5); }
+        #tab-broll #lb-close:hover { background: rgba(230,0,35,.85); }
+        #tab-broll .foot { flex: 0 0 auto; display: flex; gap: 6px; margin-top: 8px; position: relative; }
+        #tab-broll button.primary { position: relative; flex: 1 1 auto; height: 30px; font: inherit; font-size: 12.5px; font-weight: 700; letter-spacing: .4px; color: #fff; text-shadow: 0 1px 2px rgba(0,70,20,.55); border: 1px solid rgba(25,105,45,.85); border-radius: 8px; cursor: pointer; overflow: hidden; background: linear-gradient(180deg, #a8e8a0 0%, #5ecb5e 45%, #33a83c 50%, #4dbf52 100%); box-shadow: inset 0 1px 0 rgba(255,255,255,.75), 0 3px 9px rgba(15,80,30,.35); }
+        #tab-broll button.primary::after { content: ''; position: absolute; top: 0; left: 0; width: 45%; height: 100%; background: linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,.45), rgba(255,255,255,0)); animation: glossSweep 3.5s ease-in-out infinite; pointer-events: none; }
+        #tab-broll button.primary:hover { filter: brightness(1.08); }
+        #tab-broll button.primary:active { transform: scale(.985); }
+        #tab-broll button.primary:disabled { filter: saturate(.25) brightness(.95); cursor: not-allowed; }
+        #tab-broll button.primary:disabled::after { animation: none; }
+        @media (prefers-reduced-motion: reduce) {
+            #tab-broll button.primary::after { animation: none !important; }
+            #tab-broll .card { transition: none; }
+        }
+
+        /* ============ PUBLIC RELEASE POLISH (2.6.0) ============
+           From the UI review before going public: the B-roll tab no longer
+           squeezes the tab bar away, buttons and hints are readable (WCAG
+           4.5:1), the sky only drifts while the pointer is over the panel,
+           and narrow panels (300 px) wrap instead of cutting words. */
+
+        /* the tab bar never collapses (it shrank to 3 px over a big grid) */
+        .title, .tabs { flex: 0 0 auto; }
+        html.broll-mode #tab-broll { flex: 1 1 0; }
+
+        /* folder tabs sitting on the glass */
+        .title { font-size: 15px; margin: 2px 0 8px; text-shadow: 0 0 2px #0d4a78, 0 1px 3px rgba(10,60,110,.8); }
+        .tabs { margin: 0; padding: 0 10px; gap: 4px; border: 0; border-radius: 0; overflow: visible; box-shadow: none; }
+        .tabs button { height: 28px; border: 1px solid rgba(255,255,255,.75); border-bottom: 0; border-radius: 10px 10px 0 0;
+                       background: linear-gradient(180deg, rgba(255,255,255,.42), rgba(255,255,255,.22));
+                       color: #135a8c; font-weight: 600; text-shadow: 0 1px 0 rgba(255,255,255,.6); }
+        .tabs button + button { border-left: 1px solid rgba(255,255,255,.75); }
+        .tabs button.on { background: linear-gradient(180deg, rgba(255,255,255,.95), rgba(255,255,255,.62));
+                          color: #0b3049; font-weight: 700; box-shadow: none; }
+
+        /* one main action; the others are light glass; danger stays amber/red */
+        #organize-btn, #report #apply-btn {
+            background: linear-gradient(180deg, #b4edae 0%, #62c765 28%, #1f8a35 29%, #17742b 100%);
+            text-shadow: 0 1px 1px rgba(0,40,10,.7); }
+        #preview-btn { color: #0b4f82; text-shadow: 0 1px 0 rgba(255,255,255,.85); border: 1px solid rgba(40,110,170,.6);
+            background: linear-gradient(180deg, #fff 0%, #e6f4fd 48%, #cde6f8 50%, #e1f0fb 100%); }
+        #undo-btn { color: #0b5a52; text-shadow: 0 1px 0 rgba(255,255,255,.85); border: 1px solid rgba(20,120,105,.6);
+            background: linear-gradient(180deg, #fff 0%, #e3f7f2 48%, #c8ebe4 50%, #ddf3ee 100%); }
+        #reset-btn, #full-btn { color: #4d2700; text-shadow: 0 1px 0 rgba(255,255,255,.55);
+            min-height: 36px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        #reset-btn.confirm, #full-btn.confirm { color: #fff; text-shadow: 0 1px 1px rgba(80,5,0,.7);
+            background: linear-gradient(180deg, #ff9a8c 0%, #e8604c 30%, #b42419 31%, #a31f14 100%); }
+
+        /* readable secondary text */
+        .field .hint { font-size: 11px; line-height: 1.4; color: #1c4a6e; margin-top: 0; }
+        .section-label { font-size: 11px; color: #0f4f7d; }
+        #auto-status a.nudge, #tab-broll .count.warn { color: #8a4a00; }
+        input::placeholder, #tab-broll input::placeholder { color: #4a7392; }
+        #report { overflow-wrap: anywhere; }
+        .intro { position: relative; margin: 0 0 10px; font-size: 11.5px; line-height: 1.45; color: #0b3049; text-align: center; }
+
+        /* settings drawer: groups that open and close */
+        #params details.group { margin: 0 0 4px; position: relative; }
+        #params details.group > summary { cursor: pointer; padding: 7px 2px; list-style: none;
+            font-size: 11px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: #0f4f7d; }
+        #params details.group > summary::-webkit-details-marker { display: none; }
+        #params details.group > summary::before { content: '\25B8\00a0'; }
+        #params details.group[open] > summary::before { content: '\25BE\00a0'; }
+        #params details.group > summary:focus-visible { outline: 2px solid #2e8fd8; outline-offset: 2px; border-radius: 4px; }
+        .field label { white-space: normal; overflow: visible; line-height: 1.25; }
+        .field.toggle { grid-template-columns: 1fr auto; }
+        .field.toggle .switch { justify-self: end; }
+        .field.wide { grid-template-columns: 1fr; }
+        .field.off { opacity: .45; }
+        @media (max-width: 340px) { .field:not(.toggle) { grid-template-columns: 1fr; } }
+
+        /* B-roll tab */
+        #tab-broll .shell { padding: 14px 12px 12px; }
+        #tab-broll .seg { border-radius: 14px; }
+        #tab-broll .row.top { flex-wrap: wrap; }
+        #tab-broll .hintline { flex: 1 0 100%; white-space: normal; }
+        #tab-broll .count { white-space: normal; flex: 1 1 auto; min-width: 0; line-height: 1.35; }
+        #tab-broll .meta { font-size: 10.5px; color: #1f5277; }
+        #tab-broll .badge, #tab-broll .card.pin .dur, #tab-broll .card.pin .meta .p { font-size: 10px; }
+        #tab-broll .card.pin .state { font-size: 10px; background: rgba(11,48,73,.88); }
+        #tab-broll .card.sel { border-color: #2e8fd8; box-shadow: 0 0 0 2px rgba(46,143,216,.55), 0 4px 12px rgba(15,60,105,.3); }
+        #tab-broll .card.pin .badge.get { background: rgba(20,110,190,.9); }
+        #tab-broll .empty button.ghost { margin-top: 10px; }
+        #tab-broll #lb-bar { background: linear-gradient(180deg, rgba(255,255,255,.96), rgba(235,247,255,.93)); }
+        #tab-broll #lb-info, #tab-broll #lb-hint { color: #1f5277; font-size: 11px; }
+        @media (max-width: 439px) { #tab-broll #lb-hint { display: none; } }
+
+        /* quieter animation: a panel stays open next to the timeline all day.
+           The sky is one fixed layer that slides (no repaint of the gradient,
+           no seam), and everything holds still while the pointer is elsewhere. */
+        body { animation: none; background: #7ec4ef; }
+        body::before { content: ''; position: fixed; top: 0; left: 0; width: 300%; height: 100%; z-index: -1; pointer-events: none;
+            background: linear-gradient(100deg, #bfe6fb 0%, #7ec4ef 20%, #4d9fdc 40%, #6fc7b4 60%, #7ec4ef 80%, #bfe6fb 100%);
+            animation: skyDrift 60s ease-in-out infinite alternate; }
+        @keyframes skyDrift { to { transform: translateX(-50%); } }
+        html:not(:hover) body::before, html:not(:hover) .bubble { animation-play-state: paused; }
+        .container, #tab-broll .shell { -webkit-backdrop-filter: none; backdrop-filter: none; }
+        button::after { animation: none; transform: translateX(-120%) skewX(-18deg); }
+        #organize-btn:hover::after, #report #apply-btn:hover::after { animation: glossSweep .9s ease-out 1; }
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { animation: none !important; transition: none !important; }
+        }
+    </style>
+    <script type="text/javascript" src="./CSInterface.js"></script>
+</head>
+<body>
+    <div class="bubble b1"></div>
+    <div class="bubble b2"></div>
+    <div class="bubble b3"></div>
+
+    <h1 class="title">Isma Organizer</h1>
+
+    <div class="tabs" role="tablist">
+        <button id="tab-btn-organize" role="tab" class="on" aria-selected="true">Organize</button>
+        <button id="tab-btn-broll" role="tab" aria-selected="false">B-roll</button>
+    </div>
+
+    <div id="tab-organize" role="tabpanel">
+
+    <div class="container">
+
+        <p id="first-run" class="intro" hidden>Sorts this project into numbered bins (01 sequence … 10 exports). Start with <b>Preview</b>: nothing moves until you click <b>Apply</b>, and every run can be undone.</p>
+
+        <div class="btns">
+            <div class="btns-row">
+                <button id="organize-btn" title="Move loose items into the numbered bins">▶ Organize project</button>
+                <button id="preview-btn" title="Show what would move — changes nothing">Preview</button>
+            </div>
+            <button id="undo-btn" style="display:none">↶ Undo last organize</button>
+        </div>
+
+        <div id="auto-status" aria-live="polite"></div>
+
+        <div id="bridge-status" aria-live="polite"></div>
+
+        <div id="report" aria-live="polite"></div>
+
+        <button id="toggle-params" aria-expanded="false" aria-controls="params">More settings <span id="toggle-arrow">▸</span></button>
+
+        <div id="params">
+
+        <details class="group" open>
+            <summary>Automatic</summary>
+
+        <div class="field toggle">
+            <label for="f-auto-sequences">File new sequences</label>
+            <span class="switch">
+                <input type="checkbox" id="f-auto-sequences">
+                <span class="track"></span>
+            </span>
+            <span class="hint">A sequence that appears while you edit — a Nest, a new timeline — goes to its bin within seconds. Only sequences move. Works even with Auto-organize off.</span>
+        </div>
+        <div class="field toggle">
+            <label for="f-auto-enabled">Auto-organize</label>
+            <span class="switch">
+                <input type="checkbox" id="f-auto-enabled">
+                <span class="track"></span>
+            </span>
+            <span class="hint">Also sorts imported files on its own. Works only while this panel is open.</span>
+        </div>
+        <div class="field">
+            <label for="f-auto-interval">Every</label>
+            <select id="f-auto-interval">
+                <option value="0">Never — only on the triggers below</option>
+                <option value="15">15 minutes</option>
+                <option value="30" selected>30 minutes</option>
+                <option value="60">1 hour</option>
+                <option value="120">2 hours</option>
+            </select>
+        </div>
+        <div class="field toggle">
+            <label for="f-auto-on-open">When a project opens</label>
+            <span class="switch">
+                <input type="checkbox" id="f-auto-on-open" checked>
+                <span class="track"></span>
+            </span>
+        </div>
+        <div class="field toggle">
+            <label for="f-auto-on-import">After new imports</label>
+            <span class="switch">
+                <input type="checkbox" id="f-auto-on-import" checked>
+                <span class="track"></span>
+            </span>
+            <span class="hint">Waits until importing has stopped, then sorts the new files.</span>
+        </div>
+        <div class="field toggle">
+            <label for="f-sounds">Sounds</label>
+            <span class="switch">
+                <input type="checkbox" id="f-sounds">
+                <span class="track"></span>
+            </span>
+        </div>
+        </details>
+
+        <details class="group" open>
+            <summary>Sorting rules</summary>
+
+        <div class="field">
+            <label for="f-seq-patterns">Always a main sequence (01)</label>
+            <input type="text" id="f-seq-patterns" value="" placeholder="e.g. Hook;Body">
+            <span class="hint">Sequences whose name has one of these words go to <b>01 sequence</b>, even when another timeline uses them. Whole words: "Hook" matches <code>Hook 1</code> and <code>hook 7</code>, not <code>Hookah</code>. Separate with ;</span>
+        </div>
+        <div class="field">
+            <label for="f-nested-patterns">Always nested (08)</label>
+            <input type="text" id="f-nested-patterns" value="" placeholder="e.g. Cut;Scene">
+            <span class="hint">Sequences whose name has one of these words go to <b>08 nested sequence</b>, even when no timeline uses them. Premiere's own "Nested Sequence 12" is always recognized. Any other sequence: nested if another timeline uses it, otherwise a main sequence.</span>
+        </div>
+        <div class="field">
+            <label for="f-broll-patterns">B-roll words</label>
+            <input type="text" id="f-broll-patterns" value="DJI;GOPR;GX0;OSMO">
+            <span class="hint">Videos whose <b>name</b> contains one of these words go to B-roll. A word with a slash matches the file's <b>folder</b> instead: <code>/B-roll/;/Stock/</code>. TikTok and Pinterest downloads are recognized on their own. Separate with ;</span>
+        </div>
+        <div class="field">
+            <label for="f-export-patterns">Export folders</label>
+            <input type="text" id="f-export-patterns" value="Exports;Renders;Rendus;Export">
+            <span class="hint">Any file in a folder with one of these names goes to Exports, whatever its type.</span>
+        </div>
+        <div class="field toggle">
+            <label for="f-audio-split">Split audio</label>
+            <span class="switch">
+                <input type="checkbox" id="f-audio-split" checked>
+                <span class="track"></span>
+            </span>
+            <span class="hint">Inside the audio bin: <b>Music</b>, <b>SFX</b> and <b>Voice</b>, by the words below. Off, all audio stays together.</span>
+        </div>
+        <div class="field">
+            <label for="f-sfx-patterns">SFX words</label>
+            <input type="text" id="f-sfx-patterns" value="sfx;whoosh;riser;impact;swoosh;hit;foley;transition">
+        </div>
+        <div class="field">
+            <label for="f-voice-patterns">Voice words</label>
+            <input type="text" id="f-voice-patterns" value="vo;voix;voice;voice-over;voiceover;itw;interview;narration">
+            <span class="hint">Short words (under 4 letters) must stand alone in the name — "vo" matches <code>vo_intro.wav</code>, not <code>love.mp3</code>.</span>
+        </div>
+        <div class="field">
+            <label for="f-ignored">Ignore</label>
+            <input type="text" id="f-ignored" placeholder="name1;name2">
+            <span class="hint">Bins and items with these names are never touched. Separate with ;</span>
+        </div>
+        <div class="field toggle">
+            <label for="f-color-labels">Color the clips</label>
+            <span class="switch">
+                <input type="checkbox" id="f-color-labels" checked>
+                <span class="track"></span>
+            </span>
+            <span class="hint">Gives each category its label color. Turn off if you use label colors for your own status (approved, to review…). Undo puts the old colors back.</span>
+        </div>
+        <div class="field toggle">
+            <label for="f-legacy-bins">Merge old bins</label>
+            <span class="switch">
+                <input type="checkbox" id="f-legacy-bins">
+                <span class="track"></span>
+            </span>
+            <span class="hint">Bins made by older versions of this panel (<code>video</code>, <code>other</code>, <code>screenshots</code>, <code>styles</code>, <code>sequence</code>, <code>nested sequence</code>, <code>music &amp; sound effect</code>) are emptied into the numbered bins. Leave off if you named bins of your own like that.</span>
+        </div>
+        </details>
+
+        <details class="group">
+            <summary>Bin names</summary>
+
+        <div class="field">
+            <label for="f-seq">🎞️ Sequences</label>
+            <input type="text" id="f-seq" value="01 sequence">
+        </div>
+        <div class="field">
+            <label for="f-video">🎬 Video</label>
+            <input type="text" id="f-video" value="02 video">
+        </div>
+        <div class="field">
+            <label for="f-broll">🎥 B-roll</label>
+            <input type="text" id="f-broll" value="03 b-roll">
+        </div>
+        <div class="field">
+            <label for="f-audio">🎵 Audio</label>
+            <input type="text" id="f-audio" value="04 music & sound effect">
+        </div>
+        <div class="field">
+            <label for="f-images">🖼️ Images</label>
+            <input type="text" id="f-images" value="05 images">
+        </div>
+        <div class="field">
+            <label for="f-anim">✨ Animations / Templates</label>
+            <input type="text" id="f-anim" value="06 animations & templates">
+            <span class="hint">mogrt, aegraphic, aep…</span>
+        </div>
+        <div class="field">
+            <label for="f-styles">🎨 Styles</label>
+            <input type="text" id="f-styles" value="07 styles">
+        </div>
+        <div class="field">
+            <label for="f-nested">🔗 Nested sequences</label>
+            <input type="text" id="f-nested" value="08 nested sequence">
+        </div>
+        <div class="field">
+            <label for="f-other">📁 Other</label>
+            <input type="text" id="f-other" value="09 other">
+        </div>
+        <div class="field">
+            <label for="f-exports">📤 Exports</label>
+            <input type="text" id="f-exports" value="10 exports">
+            <span class="hint">Renders you re-import, kept apart from the rushes. Recognised by folder — see below.</span>
+        </div>
+        </details>
+
+        <details class="group">
+            <summary>B-roll</summary>
+
+        <div class="field">
+            <label for="f-watch-dir">B-roll folder</label>
+            <input type="text" id="f-watch-dir" placeholder="~/Downloads/Pinterest">
+            <span class="hint">Where the B-roll tab looks for your clips and saves Pinterest videos. Empty = <code>Downloads/Pinterest</code> in your home folder.</span>
+        </div>
+        <div class="field toggle">
+            <label for="f-bridge-enabled">Auto-import</label>
+            <span class="switch">
+                <input type="checkbox" id="f-bridge-enabled">
+                <span class="track"></span>
+            </span>
+            <span class="hint">Imports whatever lands in the B-roll folder straight into the open project, filed in B-roll. Premiere uses the files <b>where they are</b> — no copy. Works only while this panel is open.</span>
+        </div>
+        <div class="field toggle">
+            <label for="f-watch-images">Images too</label>
+            <span class="switch">
+                <input type="checkbox" id="f-watch-images" checked>
+                <span class="track"></span>
+            </span>
+            <span class="hint">Off, Auto-import takes videos only.</span>
+        </div>
+        <div class="field toggle">
+            <label for="f-broll-tag">Red Finder tag</label>
+            <span class="switch">
+                <input type="checkbox" id="f-broll-tag">
+                <span class="track"></span>
+            </span>
+            <span class="hint">Mac only: tags the files in the B-roll folder red in the Finder, next to the tags they already have.</span>
+        </div>
+        </details>
+
+        <details class="group">
+            <summary>Whole project — careful</summary>
+
+        <div class="field wide">
+            <label for="full-btn">Re-sort every bin</label>
+            <button id="full-btn">Re-sort every bin…</button>
+            <span class="hint">Normal runs leave your own bins alone. This also opens them and re-sorts what is inside. Asks twice; Undo is available.</span>
+        </div>
+        <div class="field wide">
+            <label for="reset-btn">Flatten project</label>
+            <button id="reset-btn">Flatten project…</button>
+            <span class="hint">Moves every item out of every bin — yours too — to the root and deletes the empty bins. The Ignore list is kept. Asks twice; Undo is available.</span>
+        </div>
+        </details>
+
+        <details class="group">
+            <summary>Advanced</summary>
+
+        <div class="field toggle">
+            <label for="f-refresh-view">Redraw bins after sorting</label>
+            <span class="switch">
+                <input type="checkbox" id="f-refresh-view" checked>
+                <span class="track"></span>
+            </span>
+            <span class="hint">Nudges Premiere to redraw each bin, so thumbnails don't stay stacked on top of each other.</span>
+        </div>
+        <div class="field">
+            <label for="diag-btn">Sequence check</label>
+            <button id="diag-btn">Run sequence diagnostic</button>
+            <span class="hint">Shows what the scan can read from your timelines — use it when sequences and nested sequences end up in the wrong bin. Changes nothing.</span>
+        </div>
+        </details>
+
+        </div><!-- /params -->
+
+    </div>
+
+    </div><!-- /tab-organize -->
+
+    <div id="tab-broll" role="tabpanel">
+    <div class="shell">
+
+      <div class="row top">
+        <div class="seg modes">
+          <button id="m-local" class="on">My downloads</button>
+          <button id="m-pin">Pinterest</button>
+        </div>
+        <span class="hintline" id="hint">Click to view · drag to the timeline</span>
+      </div>
+
+      <div class="row" id="row-local">
+        <input type="search" id="q" placeholder="Search downloads…" title="Several words: all must match" autocomplete="off" spellcheck="false">
+        <div class="seg">
+          <button id="bf-all" class="on">All</button>
+          <button id="bf-video">Video</button>
+          <button id="bf-image">Images</button>
+        </div>
+        <button class="ghost" id="refresh" title="Re-read the folder">&#8635;</button>
+      </div>
+
+      <div class="row" id="row-pin" hidden>
+        <input type="search" id="pq" placeholder="Search Pinterest videos, then press Enter…" autocomplete="off" spellcheck="false">
+        <button class="ghost" id="pgo" title="Search Pinterest">Search</button>
+      </div>
+
+      <div class="row">
+        <span class="count" id="status">Reading…</span>
+      </div>
+
+      <div class="grid" id="grid"></div>
+      <div class="grid" id="pgrid" hidden></div>
+
+    </div>
+
+    <!-- Large preview: opens on click, closes on Esc / backdrop / ✕.
+         The whole frame is a drag handle for the file it shows. -->
+    <div id="lightbox" hidden>
+      <div id="lb-frame" title="Drag me to the timeline">
+        <button id="lb-close" title="Close (Esc)">×</button>
+        <div id="lb-stage"></div>
+        <div id="lb-bar">
+          <button class="ghost" id="lb-prev" title="Previous (←)">‹</button>
+          <div id="lb-text">
+            <div id="lb-name"></div>
+            <div id="lb-info"></div>
+          </div>
+          <span id="lb-hint"><b>Esc</b> close · <b>←</b> <b>→</b> browse · <b>␣</b> play</span>
+          <button class="ghost" id="lb-next" title="Next (→)">›</button>
+        </div>
+      </div>
+    </div>
+    </div><!-- /tab-broll -->
+
+    <script type="text/javascript">
+        var TEXT_KEYS = ['f-video','f-broll','f-audio','f-images','f-anim',
+                         'f-styles','f-seq','f-nested','f-other','f-exports',
+                         'f-broll-patterns','f-export-patterns',
+                         'f-sfx-patterns','f-voice-patterns',
+                         'f-seq-patterns','f-nested-patterns',
+                         'f-ignored','f-auto-interval',
+                         'f-watch-dir'];
+
+        var CHECK_KEYS = ['f-auto-enabled','f-auto-on-open','f-auto-sequences',
+                          'f-auto-on-import','f-sounds','f-color-labels',
+                          'f-refresh-view','f-audio-split',
+                          'f-bridge-enabled','f-watch-images',
+                          'f-legacy-bins','f-broll-tag'];
+
+        // Every call into the host goes through this one name. The .jsx keeps
+        // everything inside it so no other panel's script can overwrite ours.
+        var HOST = 'IsmaOrganizer';
+
+        var REPORT_LABELS = {
+            video:   '🎬 Video',
+            broll:   '🎥 B-roll',
+            audio:   '🎵 Audio',
+            images:  '🖼️ Images',
+            anim:    '✨ Animations',
+            styles:  '🎨 Styles',
+            seq:     '🎞️ Sequences',
+            nested:  '🔗 Nested',
+            exports: '📤 Exports',
+            other:   '📁 Other',
+            offline: '⚠️ Offline'
+        };
+
+        function val(id) { return document.getElementById(id).value; }
+        function checked(id) { return document.getElementById(id).checked; }
+
+        function escapeHtml(s) {
+            return String(s).replace(/&/g, '&amp;')
+                            .replace(/</g, '&lt;')
+                            .replace(/>/g, '&gt;');
+        }
+
+        function splitList(str) {
+            return str.split(';')
+                .map(function(s) { return s.trim(); })
+                .filter(function(s) { return s.length > 0; });
+        }
+
+        // Bin names must be trimmed. An untrimmed "02 video " is created once,
+        // then Premiere reports it back trimmed, so the next run fails to match
+        // it and creates ANOTHER bin — one more on every single run. `||` alone
+        // does not catch this: a whitespace-only name is truthy.
+        function binName(id, fallback) {
+            var v = String(val(id)).replace(/^\s+|\s+$/g, '');
+            return v.length ? v : fallback;
+        }
+
+        // One place for the bin names: the organizer, the preview, the
+        // Pinterest bridge and the auto runs all read this, so they can never
+        // disagree on where "images" go.
+        function binNames() {
+            return {
+                video:   binName('f-video',   '02 video'),
+                broll:   binName('f-broll',   '03 b-roll'),
+                audio:   binName('f-audio',   '04 music & sound effect'),
+                images:  binName('f-images',  '05 images'),
+                anim:    binName('f-anim',    '06 animations & templates'),
+                styles:  binName('f-styles',  '07 styles'),
+                seq:     binName('f-seq',     '01 sequence'),
+                nested:  binName('f-nested',  '08 nested sequence'),
+                other:   binName('f-other',   '09 other'),
+                exports: binName('f-exports', '10 exports'),
+                offline: '00 offline'
+            };
+        }
+
+        // mode: 'incremental' (default — root + the top of our own bins) or
+        // 'full' (every bin, the historical behaviour, explicit button only).
+        function buildPayload(mode) {
+            return {
+                mode:           mode === 'full' ? 'full' : 'incremental',
+                names:          binNames(),
+                ignored:        splitList(val('f-ignored')),
+                brollPatterns:  splitList(val('f-broll-patterns')),
+                exportPatterns: splitList(val('f-export-patterns')),
+                audioSplit:     checked('f-audio-split'),
+                sfxPatterns:    splitList(val('f-sfx-patterns')),
+                voicePatterns:  splitList(val('f-voice-patterns')),
+                seqPatterns:    splitList(val('f-seq-patterns')),
+                nestedPatterns: splitList(val('f-nested-patterns')),
+                legacyBins:     checked('f-legacy-bins'),
+                colorLabels:    checked('f-color-labels'),
+                refreshView:    checked('f-refresh-view')
+            };
+        }
+
+        // Nested sequences no timeline uses any more: filed with the others,
+        // and named here so they can be cleaned up by hand. Never deleted.
+        function unusedNestedLine(res) {
+            var list = (res && res.unusedNested) || [];
+            if (!list.length) return '';
+            var names = list.slice(0, 5).map(escapeHtml).join(', ') + (list.length > 5 ? '…' : '');
+            return '<span class="report-why">🧹 ' + list.length + ' nested sequence'
+                + (list.length > 1 ? 's are' : ' is') + ' not used in any timeline any more ('
+                + names + ') — filed with the nested ones, safe to delete if you do not need '
+                + (list.length > 1 ? 'them' : 'it') + '.</span>';
+        }
+
+        // Bins an import recreated INSIDE the plugin's bins ("01 sequence/nested
+        // sequence" after importing sequences from an old project): their
+        // content was filed like a new import, and the emptied bins removed.
+        function leftoverBinsLine(res, preview) {
+            var list = (res && res.leftoverBins) || [];
+            if (!list.length) return '';
+            return '<span class="report-why">🧹 ' + plural(list.length, 'stray bin')
+                + ' inside the numbered bins ' + (preview ? 'will be' : 'were') + ' emptied and removed: '
+                + list.slice(0, 4).map(escapeHtml).join(', ') + (list.length > 4 ? '…' : '') + '</span>';
+        }
+
+        function plural(n, word) {
+            return n + ' ' + word + (n === 1 ? '' : 's');
+        }
+
+        function hostCall(fn, argLiteral) {
+            return HOST + '.' + fn + '(' + (argLiteral || '') + ')';
+        }
+
+        function savePrefs() {
+            TEXT_KEYS.forEach(function(id) {
+                localStorage.setItem(id, val(id));
+            });
+            CHECK_KEYS.forEach(function(id) {
+                localStorage.setItem(id, checked(id) ? '1' : '0');
+            });
+            writePrefsFile();
+        }
+
+        // Premiere keeps a panel's storage per point release (26.2, 26.3…):
+        // after an update the panel opened with factory settings. A copy in a
+        // small file next to the user's other app settings brings them back.
+        function prefsFile() {
+            try {
+                var osm = require('os'), home = osm.homedir(), plat = osm.platform ? osm.platform() : process.platform;
+                if (plat === 'win32') return joinPath((process.env && process.env.APPDATA) || joinPath(home, 'AppData', 'Roaming'), 'IsmaOrganizer', 'settings.json');
+                if (plat === 'darwin') return joinPath(home, 'Library', 'Application Support', 'IsmaOrganizer', 'settings.json');
+                return joinPath(home, '.config', 'IsmaOrganizer', 'settings.json');
+            } catch (e) { return ''; }
+        }
+
+        function writePrefsFile() {
+            try {
+                var file = prefsFile();
+                if (!file) return;
+                var fsm = require('fs'), data = { prefsVersion: localStorage.getItem('prefsVersion') };
+                TEXT_KEYS.concat(CHECK_KEYS).forEach(function(id) { data[id] = localStorage.getItem(id); });
+                var dir = file.replace(/[\/\\][^\/\\]+$/, '');
+                if (!fsm.existsSync(dir)) fsm.mkdirSync(dir, { recursive: true });
+                fsm.writeFileSync(file, JSON.stringify(data, null, 1));
+            } catch (e) { /* a copy, never a blocker */ }
+        }
+
+        function restorePrefsFile() {
+            try {
+                if (localStorage.getItem('prefsVersion') !== null) return;
+                var file = prefsFile();
+                var fsm = require('fs');
+                if (!file || !fsm.existsSync(file)) return;
+                var data = JSON.parse(fsm.readFileSync(file, 'utf8'));
+                for (var k in data) {
+                    if (data.hasOwnProperty(k) && data[k] !== null && data[k] !== undefined) localStorage.setItem(k, String(data[k]));
+                }
+            } catch (e) {}
+        }
+
+        function loadPrefs() {
+            TEXT_KEYS.forEach(function(id) {
+                var v = localStorage.getItem(id);
+                if (v !== null) document.getElementById(id).value = v;
+            });
+            CHECK_KEYS.forEach(function(id) {
+                var v = localStorage.getItem(id);
+                if (v !== null) document.getElementById(id).checked = (v === '1');
+            });
+        }
+
+        // ---- Frutiger Aero sounds (Web Audio synthesis, no files) ----
+        var audioCtx = null;
+
+        function getAudioCtx() {
+            if (!audioCtx) {
+                var AC = window.AudioContext || window.webkitAudioContext;
+                if (!AC) return null;
+                audioCtx = new AC();
+            }
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            return audioCtx;
+        }
+
+        function tone(freq, delay, dur, vol, type) {
+            var c = getAudioCtx();
+            if (!c) return;
+            var t0 = c.currentTime + delay;
+            var osc = c.createOscillator();
+            var gain = c.createGain();
+            osc.type = type || 'sine';
+            osc.frequency.value = freq;
+            gain.gain.setValueAtTime(0, t0);
+            gain.gain.linearRampToValueAtTime(vol, t0 + 0.012);
+            gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+            osc.connect(gain);
+            gain.connect(c.destination);
+            osc.start(t0);
+            osc.stop(t0 + dur + 0.05);
+        }
+
+        function soundsOn() {
+            try { return checked('f-sounds'); } catch (e) { return true; }
+        }
+
+        // Small glassy click sound
+        function playClick() {
+            if (!soundsOn()) return;
+            try {
+                tone(1800, 0, 0.06, 0.10, 'triangle');
+                tone(950,  0, 0.05, 0.07, 'sine');
+            } catch (e) {}
+        }
+
+        // Crystalline Vista-style chime at the end.
+        // Automatic runs use a softer version — the panel is chiming on its
+        // own while the user is busy editing, so it should stay discreet.
+        function playChime(soft) {
+            if (!soundsOn()) return;
+            var v = soft ? 0.4 : 1;
+            try {
+                tone(659.25, 0,    0.50, 0.14 * v, 'sine'); // E5
+                tone(987.77, 0.09, 0.55, 0.12 * v, 'sine'); // B5
+                tone(1318.5, 0.18, 0.70, 0.10 * v, 'sine'); // E6
+                tone(1975.5, 0.20, 0.45, 0.04 * v, 'sine'); // B6 (sparkle)
+            } catch (e) {}
+        }
+
+        var btn = document.getElementById('organize-btn');
+        var resetBtn = document.getElementById('reset-btn');
+        var reportEl = document.getElementById('report');
+        var isRunning = false;
+
+        var previewBtn = document.getElementById('preview-btn');
+        var undoBtn    = document.getElementById('undo-btn');
+        var fullBtn    = document.getElementById('full-btn');
+
+        // A manual action must wait for a Pinterest import in flight: both
+        // talk to the same project, and the import is re-filing items.
+        function busyNow() {
+            return isRunning || (typeof bridge !== 'undefined' && bridge && bridge.busy);
+        }
+
+        function setRunning(state, runningLabel) {
+            isRunning = state;
+            btn.disabled = state;
+            resetBtn.disabled = state;
+            previewBtn.disabled = state;
+            undoBtn.disabled = state;
+            fullBtn.disabled = state;
+            var diagEl = document.getElementById('diag-btn');
+            if (diagEl) {
+                diagEl.disabled = state;
+                diagEl.textContent = (state && runningLabel === 'diag')
+                    ? '⏳ Reading the timelines…' : 'Run sequence diagnostic';
+            }
+            btn.textContent = (state && runningLabel === 'organize')
+                ? '⏳ Organizing…' : '▶ Organize project';
+            previewBtn.textContent = (state && runningLabel === 'preview')
+                ? '⏳ Looking…' : '👁 Preview';
+            resetBtn.textContent = (state && runningLabel === 'reset')
+                ? '⏳ Flattening…' : 'Flatten project…';
+            fullBtn.textContent = (state && runningLabel === 'full')
+                ? '⏳ Re-sorting every bin…' : 'Re-sort every bin…';
+            if (!(state && runningLabel === 'undo')) renderUndo();
+            else undoBtn.textContent = '⏳ Putting things back…';
+        }
+
+        // ---- Undo: the last run's snapshot, kept across panel reloads ----
+        // The host returns, for every item it moved, where it came from. That
+        // is what "undo" restores — not a flat project, the previous one.
+        var lastUndo = null;
+
+        function loadUndo() {
+            try { lastUndo = JSON.parse(localStorage.getItem('last-undo') || 'null'); } catch (e) { lastUndo = null; }
+            if (lastUndo && !(lastUndo.snapshot && lastUndo.snapshot.items && lastUndo.snapshot.items.length)) lastUndo = null;
+        }
+        function saveUndo(project, snapshot) {
+            lastUndo = (snapshot && snapshot.items && snapshot.items.length)
+                ? { project: project || '', at: Date.now(), snapshot: snapshot }
+                : null;
+            try {
+                if (lastUndo) localStorage.setItem('last-undo', JSON.stringify(lastUndo));
+                else localStorage.removeItem('last-undo');
+            } catch (e) {}
+            renderUndo();
+        }
+        function renderUndo() {
+            if (!lastUndo) { undoBtn.style.display = 'none'; return; }
+            undoBtn.style.display = '';
+            undoBtn.textContent = '↶ Undo last organize (' + lastUndo.snapshot.items.length + ' item'
+                + (lastUndo.snapshot.items.length > 1 ? 's' : '') + ')';
+        }
+
+        var autoWasDisabledByReset = false;
+
+        var AUTO_REASONS = {
+            sequences: 'a new sequence appeared',
+            open:     'a project was opened',
+            'import': 'new files were imported',
+            interval: 'scheduled run'
+        };
+
+        function showReport(resultStr, mode, autoKind) {
+            var html;
+            var success = true;
+            try {
+                var res = JSON.parse(resultStr);
+                if (res && res.error === 'no-project') throw new Error('no-project');
+
+                if (mode === 'undo') {
+                    if (res && res.error === 'wrong-project') {
+                        reportEl.innerHTML = '<div class="report-title" style="color:#a33">↶ Not this project</div>'
+                            + 'This undo belongs to <b>' + escapeHtml(shortName(res.expected))
+                            + '</b>. Open that project to use it, or organize this one to replace it.';
+                        reportEl.style.display = 'block';
+                        return false;
+                    }
+                    if (typeof res.restored !== 'number') throw new Error('bad result');
+                    html = '<div class="report-title">↶ Put back where it was</div>'
+                         + '<b>' + res.restored + '</b> ' + (res.restored === 1 ? 'item went back to its' : 'items went back to their') + ' previous bin.'
+                         + (res.missing ? '<br><span class="report-why">' + plural(res.missing, 'item')
+                             + (res.missing === 1 ? ' is no longer in the project and was' : ' are no longer in the project and were') + ' skipped.</span>' : '')
+                         + (res.failed ? '<br><span style="color:#a35b00">⚠️ ' + plural(res.failed, 'item')
+                             + ' could not be moved back.</span>' : '');
+                    reportEl.innerHTML = html;
+                    reportEl.style.display = 'block';
+                    // Nothing came back (wrong project after all, or every item
+                    // gone)? Keep the snapshot — it may still be right elsewhere.
+                    if (res.restored > 0 || res.missing === 0) saveUndo(null, null);
+                    return true;
+                }
+
+                if (typeof res.total !== 'number') throw new Error('bad result');
+
+                var stuck = res.failed
+                    ? '<br><span style="color:#a35b00">⚠️ <b>' + res.failed
+                      + '</b> ' + (res.failed === 1
+                          ? 'item could not be moved — it is locked or in use, and was left where it is.'
+                          : 'items could not be moved — they are locked or in use, and were left where they are.')
+                      + (res.failedNames && res.failedNames.length
+                          ? ' (' + res.failedNames.map(escapeHtml).join(', ')
+                            + (res.failed > res.failedNames.length ? '…' : '') + ')'
+                          : '')
+                      + '</span>'
+                    : '';
+
+                if (mode === 'reset') {
+                    // Flattening is undoable like any run — its snapshot replaces
+                    // the previous one, which no longer describes the project.
+                    saveUndo(res.project, (res.undo && res.undo.items && res.undo.items.length) ? res.undo : null);
+                    html = '<div class="report-title">Project flattened</div>'
+                         + (res.kept
+                             ? 'Bins emptied and removed — your Ignore list ('
+                               + res.kept + ' name' + (res.kept > 1 ? 's' : '') + ') was left alone.'
+                             : 'Bins emptied and removed.')
+                         + (autoWasDisabledByReset
+                             ? '<br><span class="report-why">Automatic sorting was switched off '
+                               + 'so it does not sort everything again.</span>'
+                             : '')
+                         + stuck
+                         + '<div class="report-total">' + plural(res.total, 'item')
+                         + ' moved back to the root</div>';
+                } else {
+                    var lines = [];
+                    for (var cat in REPORT_LABELS) {
+                        if (res.counts[cat]) {
+                            lines.push(REPORT_LABELS[cat] + ': <b>' + res.counts[cat] + '</b>');
+                        }
+                    }
+                    if (res.duplicates && res.duplicates.length) {
+                        var names = res.duplicates.slice(0, 4).map(escapeHtml).join(', ');
+                        if (res.duplicates.length > 4) names += '…';
+                        lines.push('<span style="color:#a35b00">🔁 <b>'
+                            + res.duplicates.length + '</b> file(s) imported more than once: '
+                            + names + '</span>');
+                    }
+                    if (res.skipped && res.skipped.length) {
+                        lines.push('<span class="report-why">🚫 Left alone (on your '
+                            + 'Ignore list): ' + res.skipped.map(escapeHtml).join(', ')
+                            + '</span>');
+                    }
+                    lines.push(unusedNestedLine(res));
+                    lines.push(leftoverBinsLine(res));
+                    var title = autoKind
+                        ? '🤖 Auto-organized <span class="report-why">('
+                          + (AUTO_REASONS[autoKind] || 'automatic') + ')</span>'
+                        : (res.mode === 'full' ? '✅ Whole project re-sorted' : '✅ Done organizing');
+                    if (res.total === 0 && !res.failed) {
+                        lines.unshift('<span class="report-why">Everything was already in place'
+                            + (res.unchanged ? ' — ' + plural(res.unchanged, 'item') + ' checked' : '')
+                            + '. Nothing moved.</span>');
+                    } else if (res.unchanged) {
+                        lines.push('<span class="report-why">' + plural(res.unchanged, 'item')
+                            + ' already where they belong.</span>');
+                    }
+                    lines = lines.filter(function (l) { return !!l; });
+                    // What needs attention comes first, the counts after.
+                    html = '<div class="report-title">' + title + '</div>'
+                         + (stuck ? stuck.replace(/^<br>/, '') + '<br>' : '')
+                         + lines.join('<br>')
+                         + '<div class="report-total">Total: ' + plural(res.total, 'item') + ' moved</div>';
+                    // A run that moved nothing has nothing to undo — keep the
+                    // previous snapshot, it is still the last real change. An
+                    // automatic pass (a Nest filed a minute after a manual
+                    // Organize) adds its moves in front of the manual run's,
+                    // instead of replacing them: Undo still undoes both.
+                    if (res.undo && res.undo.items && res.undo.items.length) {
+                        var snapToSave = res.undo;
+                        if (autoKind && lastUndo && lastUndo.snapshot && lastUndo.project === res.project) {
+                            snapToSave = {
+                                items: res.undo.items.concat(lastUndo.snapshot.items || []),
+                                bins: (res.undo.bins || []).concat(lastUndo.snapshot.bins || []),
+                                names: res.undo.names,
+                                project: res.undo.project
+                            };
+                        }
+                        saveUndo(res.project, snapToSave);
+                    }
+                }
+            } catch (e) {
+                success = false;
+                var why;
+                if (e && e.message === 'no-project') {
+                    why = 'Open a project in Premiere, then click Organize.';
+                    html = '<div class="report-title" style="color:#135a8c">No project open</div>' + why;
+                    reportEl.innerHTML = html;
+                    reportEl.style.display = 'block';
+                    return false;
+                } else if (resultStr === '__timeout__') {
+                    why = 'Premiere did not answer in time. On a very large project '
+                        + 'this can take a while — check the Project panel before retrying.';
+                } else if (String(resultStr).indexOf('EvalScript error') !== -1) {
+                    why = 'Premiere refused to run the script. Open a project, '
+                        + 'then try again.';
+                } else {
+                    why = 'The script could not run. Make sure a project is open.';
+                }
+                html = '<div class="report-title" style="color:#a33">❌ Error</div>' + why;
+            }
+            reportEl.innerHTML = html;
+            reportEl.style.display = 'block';
+            return success;
+        }
+
+        // Runs a JSX call. Guarantees the panel is released even if Premiere
+        // never calls the callback back — otherwise the buttons stay stuck on
+        // "…in progress" forever and the only fix is reopening the panel.
+        function runJSX(call, mode, autoKind) {
+            var settled = false;
+            var startedAt = Date.now();
+
+            function release() {
+                setRunning(false);
+                // Anchor the cooldown to COMPLETION, not to when we started.
+                // A ten-minute pass on a huge project must not be followed
+                // immediately by another one.
+                auto.lastRunAt     = Date.now();
+                auto.cooldownUntil = Date.now() + MIN_COOLDOWN_MS;
+            }
+
+            function finish(result) {
+                if (settled) return;
+                settled = true;
+                clearTimeout(watchdog);
+                auto.blocked = false;
+                release();
+                writeRunLog(mode, call, result);
+                writeJournal(mode, autoKind, result, Date.now() - startedAt);
+                if (mode === 'preview')      { renderPreview(result); }
+                else if (mode === 'diag')    { renderDiagnostic(result); }
+                // Chime only if it actually succeeded
+                else if (showReport(result, mode, autoKind)) playChime(!!autoKind);
+                refreshBaseline(mode);
+            }
+
+            // Ten minutes with no answer almost certainly means the script is
+            // STILL running, not that it died. Free the buttons so the user is
+            // never trapped — but block AUTOMATIC runs until the real callback
+            // lands, otherwise auto-organize starts a second full pass on top
+            // of one that is still moving items.
+            var watchdog = setTimeout(function() {
+                if (settled) return;
+                auto.blocked = true;
+                auto.pending = null;
+                release();
+                writeJournal(mode, autoKind, '__timeout__', Date.now() - startedAt);
+                showReport('__timeout__', mode, autoKind);
+            }, 600000);
+
+            try {
+                var csInterface = new CSInterface();
+                var scriptPath = csInterface.getSystemPath(SystemPath.EXTENSION) + '/OrganizeFilesInProject.jsx';
+                csInterface.evalScript('$.evalFile(' + JSON.stringify(scriptPath) + ')', function() {
+                    csInterface.evalScript(call, finish);
+                });
+            } catch (e) {
+                finish('invalid');
+            }
+        }
+
+        // Every host action starts here — manual, automatic, preview,
+        // diagnostic. It disarms both two-click confirmations: a run that
+        // finishes inside their 6-second window used to leave a plain-looking
+        // button that flattened the project on the next single click.
+        // What the host answered, verbatim, on disk: ~/Library/Logs/IsmaOrganizer/
+        // last-<mode>.json. When the sorting is wrong on a real project, this
+        // file is what shows why — the report carries every sequence decision.
+        // Joined by Node: \ on Windows, / elsewhere. Falls back to / where
+        // Node is missing (the tests' stubs).
+        function joinPath() {
+            var parts = [].slice.call(arguments);
+            try { var pm = require('path'); if (pm && pm.join) return pm.join.apply(pm, parts); } catch (e) {}
+            return parts.join('/');
+        }
+
+        // Where each system keeps an app's logs.
+        function logDir(osm) {
+            var home = osm.homedir(), plat = '';
+            try { plat = osm.platform ? osm.platform() : process.platform; } catch (e) {}
+            if (plat === 'win32') {
+                var local = (typeof process !== 'undefined' && process.env && process.env.LOCALAPPDATA) || joinPath(home, 'AppData', 'Local');
+                return joinPath(local, 'IsmaOrganizer', 'Logs');
+            }
+            if (plat === 'darwin') return joinPath(home, 'Library', 'Logs', 'IsmaOrganizer');
+            return joinPath(home, '.cache', 'IsmaOrganizer', 'logs');
+        }
+
+        function writeRunLog(mode, call, result) {
+            try {
+                var fsm = require('fs'), osm = require('os');
+                var dir = logDir(osm);
+                if (!fsm.existsSync(dir)) fsm.mkdirSync(dir, { recursive: true });
+                var parsed = null;
+                try { parsed = JSON.parse(result); } catch (e) {}
+                fsm.writeFileSync(joinPath(dir, 'last-' + mode + '.json'), JSON.stringify({
+                    at: new Date().toISOString(),
+                    mode: mode,
+                    call: String(call).slice(0, 80),
+                    raw: parsed ? undefined : String(result).slice(0, 2000),
+                    result: parsed
+                }, null, 1));
+            } catch (e) { /* a log, never a blocker */ }
+        }
+
+        // One line per run, appended to the activity journal's inbox:
+        // ~/Documents/Journal premire/data/plugin-isma-organizer.jsonl.
+        // The journal picks the file up on its own. The folder belongs to the
+        // journal: if it does not exist, nothing is written. Any failure is
+        // swallowed — measuring must never break sorting.
+        var JOURNAL_REASONS = { open: 'ouverture', 'import': 'import', interval: 'minuteur', sequences: 'sequences' };
+
+        function journalLine(mode, autoKind, result, ms) {
+            var res = null;
+            try { res = JSON.parse(result); } catch (e) {}
+            var detail = { raison: JOURNAL_REASONS[autoKind] || 'manuel' };
+            if (!res || res.error) {
+                detail.erreur = res && res.error ? String(res.error)
+                              : (result === '__timeout__' ? 'timeout' : String(result || 'no answer').slice(0, 120));
+            } else {
+                var names = (res.undo && res.undo.names) || binNames();
+                var byBin = {};
+                for (var cat in (res.counts || {})) {
+                    if (res.counts.hasOwnProperty(cat)) byBin[names[cat] || cat] = res.counts[cat];
+                }
+                detail.sequences = (typeof res.seqTotal === 'number') ? res.seqTotal : null;
+                detail.nested_trouves = (typeof res.nestedFound === 'number') ? res.nestedFound : null;
+                detail.nested_deplaces = (res.counts && res.counts.nested) || 0;
+                detail.deplaces_par_categorie = byBin;
+                detail.total = res.total || 0;
+                detail.echecs = res.failed || 0;
+                detail.deja_ranges = res.unchanged || 0;
+                detail.nested_inutilisees = (res.unusedNested || []).length;
+                detail.mode = res.mode || '';
+                detail.sequences_seulement = !!res.onlySequences;
+                detail.scan = (typeof res.scan === 'string') ? res.scan : 'none';   // none | active | full
+                detail.clips_lus = res.clipsRead || 0;
+                detail.restes_import = (res.leftoverBins || []).length;
+                detail.par_regle = res.byRule || 0;
+                if (res.debug && res.debug.version) detail.version = res.debug.version;
+            }
+            var project = '';
+            try { project = String((res && res.project) || auto.lastPath || '').replace(/\\/g, '/').split('/').pop(); } catch (e) {}
+            return {
+                ts: Date.now() / 1000,
+                plugin: 'Isma Organizer',
+                action: 'plugin.call',
+                object: mode,
+                ms: Math.max(0, Math.round(ms)),
+                project: project,
+                detail: detail
+            };
+        }
+
+        function writeJournal(mode, autoKind, result, ms) {
+            try {
+                var fsm = require('fs'), osm = require('os');
+                // Only where that journal already exists: the folder is never
+                // created, so on any other computer this is a no-op.
+                var file = joinPath(osm.homedir(), 'Documents', 'Journal premire', 'data', 'plugin-isma-organizer.jsonl');
+                fsm.appendFileSync(file, JSON.stringify(journalLine(mode, autoKind, result, ms)) + '\n');
+            } catch (e) { /* the journal is optional */ }
+        }
+
+        function startRun(label) {
+            cancelConfirm();
+            cancelFullConfirm();
+            auto.lastRunAt     = Date.now();
+            auto.cooldownUntil = Date.now() + MIN_COOLDOWN_MS;
+            // A Preview or a diagnostic files nothing: a Nest waiting for its
+            // automatic pass must survive them (it used to be dropped here).
+            if (label !== 'preview' && label !== 'diag') auto.pending = null;
+            setRunning(true, label);
+            reportEl.style.display = 'none';
+            try { savePrefs(); } catch (e) {}
+            try {
+                localStorage.setItem('seen-intro', '1');
+                var intro = document.getElementById('first-run');
+                if (intro) intro.hidden = true;
+            } catch (e) {}
+        }
+
+        function shortName(p) {
+            var s = String(p || '').replace(/\\/g, '/').split('/').pop();
+            return s || 'another project';
+        }
+
+        // Double JSON.stringify: the 2nd produces a properly escaped JS
+        // string literal (quotes, apostrophes, accents…)
+        function literal(obj) { return JSON.stringify(JSON.stringify(obj)); }
+
+        btn.addEventListener('click', function() {
+            if (busyNow()) return;
+            playClick();
+            // A manual run restarts the schedule and holds off the next
+            // automatic one — no point sorting twice in a row.
+            startRun('organize');
+            runJSX(hostCall('resetAndOrganize', literal(buildPayload('incremental'))), 'organize');
+        });
+
+        // ---- Preview: the same plan, nothing moved, then "Apply" ----
+        function renderPreview(resultStr) {
+            var res = null;
+            try { res = JSON.parse(resultStr); } catch (e) {}
+            if (!res || !res.ok) {
+                showReport(resultStr, 'organize');   // reuses the error wording
+                return false;
+            }
+            var lines = [];
+            for (var cat in REPORT_LABELS) {
+                if (!res.counts[cat]) continue;
+                var ex = (res.samples && res.samples[cat] && res.samples[cat].length)
+                    ? ' <span class="samples">' + res.samples[cat].map(escapeHtml).join(', ')
+                      + (res.counts[cat] > res.samples[cat].length ? '…' : '') + '</span>'
+                    : '';
+                lines.push(REPORT_LABELS[cat] + ': <b>' + res.counts[cat] + '</b>' + ex);
+            }
+            if (res.skipped && res.skipped.length) {
+                lines.push('<span class="report-why">🚫 Left alone (on your Ignore list): '
+                    + res.skipped.map(escapeHtml).join(', ') + '</span>');
+            }
+            lines.push(unusedNestedLine(res));
+            lines.push(leftoverBinsLine(res, true));
+            lines = lines.filter(function (l) { return !!l; });
+            var html;
+            if (res.total === 0) {
+                html = '<div class="report-title">👁 Nothing to do</div>'
+                     + '<span class="report-why">Everything is already in place'
+                     + (res.unchanged ? ' — ' + plural(res.unchanged, 'item') + ' checked' : '') + '.</span>';
+            } else {
+                html = '<div class="report-title">👁 Preview — nothing has moved yet</div>'
+                     + lines.join('<br>')
+                     + (res.unchanged ? '<br><span class="report-why">' + plural(res.unchanged, 'item')
+                         + (res.unchanged === 1 ? ' already where it belongs.' : ' already where they belong.') + '</span>' : '')
+                     + '<div class="report-total">' + plural(res.total, 'item') + ' would move</div>'
+                     + '<button id="apply-btn">▶ Apply</button>';
+            }
+            reportEl.innerHTML = html;
+            reportEl.style.display = 'block';
+            var applyBtn = document.getElementById('apply-btn');
+            if (applyBtn && res.total > 0) {
+                applyBtn.addEventListener('click', function() {
+                    if (busyNow()) return;
+                    playClick();
+                    startRun('organize');
+                    runJSX(hostCall('resetAndOrganize', literal(buildPayload('incremental'))), 'organize');
+                });
+            }
+            return true;
+        }
+
+        previewBtn.addEventListener('click', function() {
+            if (busyNow()) return;
+            playClick();
+            // Through runJSX like everything else, so a Premiere that never
+            // answers (a modal dialog is open) cannot leave the panel locked.
+            startRun('preview');
+            runJSX(hostCall('previewOrganize', literal(buildPayload('incremental'))), 'preview');
+        });
+
+        // ---- Undo the last organize ----
+        // The snapshot names its project; the host refuses any other, and we
+        // check first as well so the user gets a sentence, not a refusal.
+        undoBtn.addEventListener('click', function() {
+            if (busyNow() || !lastUndo) return;
+            playClick();
+            var snap = lastUndo.snapshot;
+            if (!snap.project) snap.project = lastUndo.project || '';
+            startRun('undo');
+            runJSX(hostCall('undoOrganize', literal(snap)), 'undo');
+        });
+
+        // ---- Full re-sort: two-click confirmation, like Back to normal ----
+        var fullConfirmTimer = null;
+
+        function cancelFullConfirm() {
+            if (fullConfirmTimer) { clearTimeout(fullConfirmTimer); fullConfirmTimer = null; }
+            fullBtn.classList.remove('confirm');
+            if (!isRunning) fullBtn.textContent = 'Re-sort every bin…';
+        }
+
+        // A double-click is not a "yes": the second click must come on its own,
+        // a moment after the button changed to ask.
+        function tooSoon(ev, armedAt) {
+            return (ev && ev.detail > 1) || (Date.now() - armedAt < 600);
+        }
+
+        var fullArmedAt = 0;
+        fullBtn.addEventListener('click', function(ev) {
+            if (busyNow()) return;
+            playClick();
+            if (!fullBtn.classList.contains('confirm')) {
+                fullBtn.classList.add('confirm');
+                fullArmedAt = Date.now();
+                fullBtn.textContent = '⚠ Click again to re-sort every bin';
+                fullConfirmTimer = setTimeout(cancelFullConfirm, 6000);
+                return;
+            }
+            if (tooSoon(ev, fullArmedAt)) return;
+            startRun('full');
+            runJSX(hostCall('resetAndOrganize', literal(buildPayload('full'))), 'organize');
+        });
+
+        // ---- Back to normal: two-click confirmation ----
+        var confirmTimer = null;
+
+        function cancelConfirm() {
+            if (confirmTimer) { clearTimeout(confirmTimer); confirmTimer = null; }
+            resetBtn.classList.remove('confirm');
+            resetBtn.textContent = 'Flatten project…';
+        }
+
+        var resetArmedAt = 0;
+        resetBtn.addEventListener('click', function(ev) {
+            if (busyNow()) return;
+            playClick();
+
+            if (!resetBtn.classList.contains('confirm')) {
+                // 1st click → ask for confirmation
+                resetBtn.classList.add('confirm');
+                resetArmedAt = Date.now();
+                resetBtn.textContent = '⚠ Click again to flatten';
+                confirmTimer = setTimeout(cancelConfirm, 6000);
+                return;
+            }
+            if (tooSoon(ev, resetArmedAt)) return;
+
+            // 2nd click → run.
+            // Auto-organize has to go off here: the user is explicitly asking
+            // for a flat project, and the next trigger would silently put every
+            // bin back within the minute.
+            cancelConfirm();
+            // "File new sequences" too: the next Nest used to put 171 of the
+            // flattened sequences straight back into 08.
+            autoWasDisabledByReset = autoEnabled() || seqWatchOn();
+            if (autoWasDisabledByReset) {
+                document.getElementById('f-auto-enabled').checked = false;
+                document.getElementById('f-auto-sequences').checked = false;
+                auto.pending = null;
+                try { savePrefs(); } catch (e) {}
+                renderAutoStatus();
+            }
+            // The Ignore list applies here too — flattening must not empty and
+            // delete bins the user explicitly asked us to leave alone.
+            startRun('reset');
+            runJSX(hostCall('backToNormal', literal(splitList(val('f-ignored')))), 'reset');
+        });
+
+        // Migration, once.
+        //  · before 2: default names changed to numbered versions → reset them;
+        //  · 3 (2.6.0, the public release): automation, sounds, old-bin merging
+        //    and the Finder tag became opt-in for NEW users. Someone who already
+        //    used the panel keeps them as he had them.
+        try {
+            restorePrefsFile();
+            var pv = localStorage.getItem('prefsVersion');
+            if (pv !== '3') {
+                var existing = (pv !== null);
+                if (pv !== '2') TEXT_KEYS.forEach(function(id) { localStorage.removeItem(id); });
+                if (existing) {
+                    ['f-legacy-bins', 'f-broll-tag', 'f-auto-sequences', 'f-sounds'].forEach(function(id) {
+                        if (localStorage.getItem(id) === null) localStorage.setItem(id, '1');
+                    });
+                    localStorage.setItem('seen-intro', '1');
+                }
+                localStorage.setItem('prefsVersion', '3');
+            }
+        } catch (e) {}
+
+        // ---- Collapse / expand settings ----
+        // ---- Sequence diagnostic ----
+        // Whether a sequence counts as nested depends on one thing only: what
+        // Premiere lets the script read from the OTHER sequences' tracks. When
+        // that read comes back empty, nothing is nested and everything lands in
+        // the same bin — silently, because every host access is wrapped in a
+        // catch. This button prints what the scan really saw.
+        var diagBtn = document.getElementById('diag-btn');
+
+        function renderDiagnostic(resultStr) {
+            var res = null;
+            try { res = JSON.parse(resultStr); } catch (e) {}
+
+            if (!res || !res.ok) {
+                reportEl.innerHTML =
+                    '<div class="report-title" style="color:#a33">❌ Diagnostic</div>'
+                    + (res && res.error === 'no-project'
+                        ? 'No project is open. Open one in Premiere, then try again.'
+                        : 'Premiere refused to run the script.');
+                reportEl.style.display = 'block';
+                return;
+            }
+
+            var s = res.scan;
+            var lines = [];
+
+            lines.push('Sequences in the project: <b>' + s.seqCount + '</b>');
+            lines.push('Tracks read: <b>' + s.tracksSeen + '</b> — clips read: <b>'
+                       + s.clipsSeen + '</b>');
+            lines.push('Sequences found inside a timeline: <b>' + s.nestedFound + '</b>');
+            if (s.opened) {
+                lines.push('<span class="report-why">Had to open ' + s.opened
+                    + ' sequence(s) to read their tracks — Premiere would not '
+                    + 'hand them over otherwise.</span>');
+            }
+
+            // The verdict in plain words: the counters above are only useful if
+            // they say which of the two failures this is.
+            var verdict;
+            if (s.seqCount === 0) {
+                verdict = 'This project has no sequences at all.';
+            } else if (s.clipsSeen === 0) {
+                verdict = '⚠️ Premiere returned no clips whatsoever. The timelines '
+                        + 'cannot be read from a script, so nothing can be '
+                        + 'recognised as nested — that is why they all share one bin.';
+            } else if (s.nestedFound === 0) {
+                verdict = 'No sequence is used inside another one, so they all '
+                        + 'belong in the sequences bin. That is correct.';
+            } else {
+                verdict = 'Nested sequences were detected — the split should work.';
+            }
+            lines.push('<span class="report-why">' + verdict + '</span>');
+
+            for (var i = 0; i < res.items.length; i++) {
+                var it = res.items[i];
+                lines.push('<span class="diag-line">'
+                    + (it.nested ? '🔗' : '🎞️') + ' ' + escapeHtml(it.name)
+                    + ' <span class="report-why">(type ' + escapeHtml(it.type)
+                    + ', node ' + escapeHtml(it.nodeId) + ')</span></span>');
+            }
+
+            if (s.errors && s.errors.length) {
+                lines.push('<span style="color:#a35b00">Errors caught: '
+                    + s.errors.slice(0, 6).map(escapeHtml).join('<br>') + '</span>');
+            }
+
+            reportEl.innerHTML = '<div class="report-title">🔎 Sequence diagnostic</div>'
+                + lines.join('<br>')
+                + '<div class="report-total">' + res.items.length
+                + ' sequence(s) in the Project panel</div>';
+            reportEl.style.display = 'block';
+        }
+
+        diagBtn.addEventListener('click', function() {
+            if (busyNow()) return;
+            playClick();
+            // It may open sequences to read them: it takes the same lock as a
+            // run, so auto-organize cannot start on top of it.
+            startRun('diag');
+            runJSX(hostCall('diagnoseNested'), 'diag');
+        });
+
+        var toggleBtn = document.getElementById('toggle-params');
+        var paramsEl  = document.getElementById('params');
+        var arrowEl   = document.getElementById('toggle-arrow');
+
+        toggleBtn.addEventListener('click', function() {
+            playClick();
+            var open = !paramsEl.classList.contains('open');
+            paramsEl.classList.toggle('open', open);
+            arrowEl.textContent = open ? '▾' : '▸';
+            toggleBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        });
+
+        // =====================================================================
+        //  AUTO-ORGANIZE
+        //
+        //  CEP has no background process: this only runs while the panel is
+        //  open. Every few seconds we ask Premiere for a cheap project
+        //  signature and decide whether to sort on our own.
+        //
+        //  Three triggers, each optional:
+        //    open     — a different project was opened
+        //    import   — the root item count grew (Premiere drops imports there)
+        //    interval — N minutes since the last run
+        //
+        //  Guard rails, because this moves the user's files without asking:
+        //    · never while a run is already in progress
+        //    · never twice inside MIN_COOLDOWN_MS
+        //    · never until the project has gone quiet (settle delays)
+        //    · never when no project is open
+        // =====================================================================
+
+        var POLL_MS         = 6000;   // how often we ask for a signature
+        var OPEN_SETTLE_MS  = 8000;   // let a freshly opened project settle
+        var IMPORT_QUIET_MS = 6000;   // wait for importing to stop
+        var SEQ_QUIET_MS    = 3000;   // a Nest is one gesture: a short settle is enough
+        var MIN_COOLDOWN_MS = 60000;  // hard floor between two automatic runs
+
+        var auto = {
+            lastPath:     null,        // project path at the last poll
+            baseRoot:     null,        // root count as of our last organize
+            lastRoot:     null,        // root count at the last poll
+            lastChangeAt: 0,           // when the root count last moved
+            baseSeq:      null,        // sequence count as of our last run
+            lastSeq:      null,        // sequence count at the last poll
+            lastSeqChangeAt: 0,        // when the sequence count / root sequences last moved
+            settledRootSeqs: 0,        // root sequences we leave alone (there at open, or ignored)
+            rootMedia:    0,           // media waiting at the root (for the nudge)
+            settledRootMedia: 0,       // media still at the root after Organize (ignored ones)
+            lastRootSeqs: null,
+            lastRunAt:    Date.now(),  // schedule anchor: first interval run is a full interval away
+            cooldownUntil: 0,          // hard floor, set only by a run that actually happened
+            pending:      null,        // { kind, notBefore }
+            polling:      false,       // a signature call is in flight
+            blocked:      false,       // a run timed out and may still be running
+            started:      false,       // have we seen any project yet this session
+            timer:        null
+        };
+
+        function autoEnabled() {
+            try { return checked('f-auto-enabled'); } catch (e) { return false; }
+        }
+
+        // The sequence watch is independent of Auto-organize: the project this
+        // was built for had Auto-organize OFF, and every Nest made during the
+        // day stayed at the root until someone clicked Organize.
+        function seqWatchOn() {
+            try { return checked('f-auto-sequences'); } catch (e) { return false; }
+        }
+
+        function watching() { return autoEnabled() || seqWatchOn(); }
+
+        function intervalMs() {
+            var m = parseInt(val('f-auto-interval'), 10);
+            return (m > 0) ? m * 60000 : 0;
+        }
+
+        // Asks the JSX for a signature. If the ExtendScript engine was reset
+        // (or the panel just opened) the function does not exist yet → load
+        // the file once and retry, so polling is self-healing.
+        //
+        // The callback is guaranteed to fire exactly once, even if Premiere
+        // never answers (a modal dialog blocks ExtendScript). Without that,
+        // polls would pile up silently and the loop would wedge.
+        function pollSignature(cb, isRetry) {
+            var done = false;
+            function once(sig) {
+                if (done) return;
+                done = true;
+                clearTimeout(guard);
+                cb(sig);
+            }
+            var guard = setTimeout(function() { once(null); }, 20000);
+
+            try {
+                var cs = new CSInterface();
+                cs.evalScript(hostCall('getProjectSignature'), function(res) {
+                    var sig = null;
+                    try { sig = JSON.parse(res); } catch (e) {}
+                    if (sig && typeof sig.ok === 'boolean') return once(sig.ok ? sig : null);
+                    if (isRetry) return once(null);
+                    try {
+                        var p = cs.getSystemPath(SystemPath.EXTENSION) + '/OrganizeFilesInProject.jsx';
+                        cs.evalScript('$.evalFile(' + JSON.stringify(p) + ')', function() {
+                            // If the guard already fired, cb has been called and
+                            // this callback is a straggler from a stalled engine.
+                            // Retrying here would invoke cb a SECOND time and let
+                            // a stale signature overwrite the import baseline.
+                            if (done) return;
+                            done = true;               // hand control to the retry
+                            clearTimeout(guard);
+                            pollSignature(cb, true);
+                        });
+                    } catch (e2) { once(null); }
+                });
+            } catch (e) { once(null); }
+        }
+
+        // After any run — manual or automatic — re-baseline, so our own bins
+        // are not mistaken for a fresh import on the next poll. After a
+        // Preview or a diagnostic nothing moved: what is waiting still waits.
+        function refreshBaseline(mode) {
+            // 'bridge': our own auto-import added files at the root. Only the
+            // root count moves on; the sequence baselines stay, or a Nest made
+            // in the same seconds would never be filed.
+            var filed = (mode !== 'preview' && mode !== 'diag' && mode !== 'bridge');
+            auto.polling = true;
+            pollSignature(function(sig) {
+                auto.polling = false;
+                if (!sig) return;
+                auto.lastPath = sig.path;
+                if (typeof sig.rootMedia === 'number') auto.rootMedia = sig.rootMedia;
+                if (mode === 'bridge') { auto.baseRoot = sig.rootCount; auto.lastRoot = sig.rootCount; }
+                if (filed) {
+                    auto.baseRoot = sig.rootCount;
+                    auto.lastRoot = sig.rootCount;
+                    if (typeof sig.seqCount === 'number') { auto.baseSeq = sig.seqCount; auto.lastSeq = sig.seqCount; }
+                    // What is still at the root after a run is there on purpose
+                    // (Ignore list, or left for Organize): do not re-trigger on
+                    // it, nor nudge about it, until it changes.
+                    if (typeof sig.rootSeqs === 'number') { auto.settledRootSeqs = sig.rootSeqs; auto.lastRootSeqs = sig.rootSeqs; }
+                    if (typeof sig.rootMedia === 'number' && (mode === 'organize' || mode === 'reset' || mode === 'undo')) {
+                        auto.settledRootMedia = sig.rootMedia;
+                    }
+                }
+                renderAutoStatus();
+            });
+        }
+
+        // A wider run absorbs a narrower one: a sequences-only pass gives way
+        // to any full incremental run, which files sequences too.
+        var KIND_RANK = { sequences: 0, interval: 1, open: 2, 'import': 2 };
+
+        function arm(kind, notBefore) {
+            if (!auto.pending) { auto.pending = { kind: kind, notBefore: notBefore }; return; }
+            // Keep whichever real reason armed it first, unless the new one is wider.
+            if ((KIND_RANK[kind] || 0) > (KIND_RANK[auto.pending.kind] || 0)) auto.pending.kind = kind;
+            // ONLY a live change may push the deadline back — imports and new
+            // sequences re-arm on every tick while they keep coming, and we want
+            // to wait for the last one. Letting 'interval' push it too would move
+            // the deadline forward by one poll on every poll, so it could never fire.
+            if ((kind === 'import' || kind === 'sequences') && notBefore > auto.pending.notBefore) {
+                auto.pending.notBefore = notBefore;
+            }
+        }
+
+        function autoTick() {
+            renderAutoStatus();
+            if (auto.blocked) { renderAutoStatus('paused — last run never finished'); return; }
+            if (!watching() || busyNow() || auto.polling) return;
+
+            auto.polling = true;
+            pollSignature(function(sig) {
+                auto.polling = false;
+                if (!watching() || busyNow()) return;
+                if (!sig) {
+                    // Forget the path too, otherwise closing and reopening the
+                    // SAME project never counts as "a project was opened".
+                    auto.pending  = null;
+                    auto.lastPath = null;
+                    auto.rootMedia = 0;
+                    renderAutoStatus('no project open');
+                    return;
+                }
+
+                var now = Date.now();
+
+                // --- a different project is now open ---
+                if (sig.path !== auto.lastPath) {
+                    // "First" means the first poll of this PANEL session, not
+                    // merely a null path — closing and reopening a project also
+                    // nulls it, and that genuinely is a project being opened.
+                    var first = !auto.started;
+                    auto.started      = true;
+                    auto.lastPath     = sig.path;
+                    auto.baseRoot     = sig.rootCount;
+                    auto.lastRoot     = sig.rootCount;
+                    auto.lastChangeAt = now;
+                    auto.baseSeq      = (typeof sig.seqCount === 'number') ? sig.seqCount : null;
+                    auto.lastSeq      = auto.baseSeq;
+                    auto.lastSeqChangeAt = now;
+                    // What is already at the root when a project opens (or the
+                    // panel does) is left alone: the watch reacts to what the
+                    // user does in THIS session. Measured on 2026-09-25:
+                    // opening an old project only to copy from it moved its 110
+                    // sequences, with "When a project opens" switched off.
+                    // A backlog is filed by the next new sequence, or Organize.
+                    auto.settledRootSeqs = (typeof sig.rootSeqs === 'number') ? sig.rootSeqs : 0;
+                    auto.lastRootSeqs = (typeof sig.rootSeqs === 'number') ? sig.rootSeqs : null;
+                    // A run armed in the PREVIOUS project must not fire in this
+                    // one: it would file this project's whole root backlog.
+                    auto.pending = null;
+                    auto.settledRootMedia = 0;
+                    // Never fire on the first poll after the panel opens: the
+                    // user did not just open this project, it was already there.
+                    if (!first && autoEnabled() && checked('f-auto-on-open')) {
+                        arm('open', now + OPEN_SETTLE_MS);
+                    }
+                }
+
+                // --- items appeared at root → almost certainly an import ---
+                if (sig.rootCount !== auto.lastRoot) {
+                    auto.lastRoot     = sig.rootCount;
+                    auto.lastChangeAt = now;
+                }
+                // Re-baseline downward as well as upward. Without this the
+                // baseline is a one-way high-water mark: delete 40 old clips,
+                // import 20 new ones, and the import trigger never fires again.
+                if (auto.baseRoot !== null && sig.rootCount < auto.baseRoot) {
+                    auto.baseRoot = sig.rootCount;
+                }
+                if (autoEnabled() && checked('f-auto-on-import') &&
+                    auto.baseRoot !== null && sig.rootCount > auto.baseRoot) {
+                    // Re-armed on every tick while the count keeps moving, so a
+                    // long drag-and-drop of 200 clips sorts once, at the end.
+                    arm('import', auto.lastChangeAt + IMPORT_QUIET_MS);
+                }
+
+                // --- plain schedule ---
+                // The scheduled trigger gets a settle window too. Firing the
+                // instant the timer elapses could land mid-drag, while the user
+                // is holding a selection over a bin.
+                // --- a sequence appeared (a Nest, a new timeline) ---
+                // Two signals, either is enough: a sequence is sitting at the
+                // root (where Premiere puts a Nest), or the project simply has
+                // more sequences than after our last run.
+                if (typeof sig.seqCount === 'number' && sig.seqCount !== auto.lastSeq) {
+                    auto.lastSeq = sig.seqCount;
+                    auto.lastSeqChangeAt = now;
+                }
+                if (typeof sig.rootSeqs === 'number' && sig.rootSeqs !== auto.lastRootSeqs) {
+                    auto.lastRootSeqs = sig.rootSeqs;
+                    auto.lastSeqChangeAt = now;
+                }
+                if (auto.baseSeq !== null && typeof sig.seqCount === 'number' && sig.seqCount < auto.baseSeq) {
+                    auto.baseSeq = sig.seqCount;
+                }
+                // Fewer sequences at the root (one was deleted or filed by hand)
+                // lowers the bar, never raises it.
+                if (typeof sig.rootSeqs === 'number' && sig.rootSeqs < auto.settledRootSeqs) {
+                    auto.settledRootSeqs = sig.rootSeqs;
+                }
+                if (typeof sig.rootMedia === 'number') auto.rootMedia = sig.rootMedia;
+                if (seqWatchOn()) {
+                    var moreSeqs  = auto.baseSeq !== null && sig.seqCount > auto.baseSeq;
+                    var atRoot    = sig.rootSeqs > auto.settledRootSeqs;
+                    if (moreSeqs || atRoot) arm('sequences', auto.lastSeqChangeAt + SEQ_QUIET_MS);
+                }
+
+                var iv = autoEnabled() ? intervalMs() : 0;
+                if (iv > 0 && now - auto.lastRunAt >= iv) {
+                    // Anchored to NOW, not to the last signature change: if the
+                    // project has been quiet for an hour, lastChangeAt is stale
+                    // and would make the delay a no-op. arm() keeps whichever
+                    // deadline is later, so a live import still wins.
+                    arm('interval', now + IMPORT_QUIET_MS);
+                }
+
+                // Cooldown is anchored to a run that actually happened, never to
+                // panel start — otherwise the first minute after opening the
+                // panel would silently swallow every trigger.
+                if (auto.pending &&
+                    now >= auto.pending.notBefore &&
+                    now >= auto.cooldownUntil) {
+                    var kind = auto.pending.kind;
+                    auto.pending = null;
+                    runAuto(kind);
+                } else {
+                    renderAutoStatus();
+                }
+            });
+        }
+
+        function runAuto(kind) {
+            startRun('organize');
+            // Automatic runs are ALWAYS incremental: they must never flatten
+            // what the user filed by hand while they were busy editing. A run
+            // triggered by a new sequence files sequences and nothing else.
+            var payload = buildPayload('incremental');
+            if (kind === 'sequences') payload.only = 'sequences';
+            // Import and interval runs happen while the user edits: they get
+            // the cheap classification (no reading of every timeline). A
+            // project being opened gets the complete check.
+            if (kind !== 'open') payload.auto = kind;
+            runJSX(hostCall('resetAndOrganize', literal(payload)), 'organize', kind);
+            renderAutoStatus();
+        }
+
+        function fmtLeft(ms) {
+            var s = Math.max(0, Math.round(ms / 1000));
+            if (s < 60) return s + 's';
+            var m = Math.round(s / 60);
+            if (m < 60) return m + ' min';
+            var h = Math.floor(m / 60);
+            return h + 'h' + ((m % 60) ? ' ' + (m % 60) + 'm' : '');
+        }
+
+        // Media waiting at the root, when nothing will file them on its own.
+        // Measured over five days: imports every day, one Organize click, and
+        // 15 to 72 items left at the root of the projects in use. The panel
+        // never moves media by itself unless Auto-organize is on — it says so.
+        function nudgeHtml() {
+            // What Organize left at the root last time (Ignore list…) is not
+            // counted: a nudge that never goes away is noise.
+            if (auto.rootMedia < auto.settledRootMedia) auto.settledRootMedia = auto.rootMedia;
+            var n = (auto.rootMedia || 0) - (auto.settledRootMedia || 0);
+            if (n <= 0 || (autoEnabled() && checked('f-auto-on-import'))) return '';
+            return ' · <a href="#" class="nudge" id="nudge-organize">📥 ' + n + ' item'
+                 + (n > 1 ? 's' : '') + ' at the root — file them</a>';
+        }
+
+        function paintStatus(el, cls, html) {
+            if (el.className !== cls) el.className = cls;
+            if (el.innerHTML !== html) el.innerHTML = html;
+        }
+
+        function renderAutoStatus(note) {
+            var el = document.getElementById('auto-status');
+            if (!el) return;
+            if (!autoEnabled()) {
+                if (seqWatchOn()) {
+                    paintStatus(el, 'on', '<span class="dot">●</span> New sequences are filed as they appear' + nudgeHtml());
+                } else { paintStatus(el, '', ''); }
+                return;
+            }
+
+            if (note) {
+                paintStatus(el, 'on idle', '<span class="dot">●</span> Auto-organize — ' + escapeHtml(note));
+                return;
+            }
+
+            var bits = [];
+            var iv = intervalMs();
+            if (iv > 0) bits.push('next in ' + fmtLeft(iv - (Date.now() - auto.lastRunAt)));
+            if (checked('f-auto-on-open'))   bits.push('on open');
+            if (checked('f-auto-on-import')) bits.push('on import');
+            if (seqWatchOn())                bits.push('new sequences');
+
+            var idle = (bits.length === 0);
+            paintStatus(el, idle ? 'on idle' : 'on', '<span class="dot">●</span> Auto-organize '
+                         + (idle ? '— no trigger selected' : 'on — ' + bits.join(' · ')) + nudgeHtml());
+        }
+
+        document.getElementById('auto-status').addEventListener('click', function(ev) {
+            var t = ev && ev.target;
+            if (!t || t.id !== 'nudge-organize') return;
+            if (ev.preventDefault) ev.preventDefault();
+            if (busyNow()) return;
+            btn.click ? btn.click() : null;
+        });
+
+        // ---- Persist settings as they change, not only on Organize ----
+        TEXT_KEYS.concat(CHECK_KEYS).forEach(function(id) {
+            var el = document.getElementById(id);
+            if (!el) return;
+            el.addEventListener('change', function() {
+                try { savePrefs(); } catch (e) {}
+                renderAutoStatus();
+            });
+        });
+
+        // Every / When a project opens / After new imports only mean something
+        // with Auto-organize on: shown greyed out otherwise.
+        function syncAutoDeps() {
+            var on = autoEnabled();
+            ['f-auto-interval', 'f-auto-on-open', 'f-auto-on-import'].forEach(function(id) {
+                var e = document.getElementById(id);
+                if (!e) return;
+                e.disabled = !on;
+                var row = e.closest ? e.closest('.field') : null;
+                if (row && row.classList) { if (on) row.classList.remove('off'); else row.classList.add('off'); }
+            });
+        }
+
+        document.getElementById('f-auto-enabled').addEventListener('change', function() {
+            syncAutoDeps();
+            playClick();
+            auto.pending = null;
+            // Count the interval from the moment it was switched on, so
+            // enabling it does not immediately trigger a run.
+            if (autoEnabled()) auto.lastRunAt = Date.now();
+            autoTick();
+        });
+
+        // loadPrefs must not be able to take the rest of the startup with it —
+        // if it threw, auto-organize silently never started while the switch
+        // still read "on".
+        try { loadPrefs(); } catch (e) {}
+        try { syncAutoDeps(); } catch (e) {}
+        try { if (!localStorage.getItem('seen-intro')) document.getElementById('first-run').hidden = false; } catch (e) {}
+        renderAutoStatus();
+        auto.timer = setInterval(autoTick, POLL_MS);
+        autoTick();
+
+        // =====================================================================
+        //  PINTEREST BRIDGE
+        //
+        //  Watches a folder — the one a browser extension drops downloads into —
+        //  and imports whatever appears into the open project. No server and no
+        //  extra browser permission: the CEP manifest already enables Node
+        //  (--enable-nodejs), so `fs` is all this needs.
+        //
+        //  Three traps, each of them real:
+        //   • A browser writes a .crdownload that grows, then renames. Import a
+        //     tick too early and Premiere gets a truncated file — an offline
+        //     clip, permanently. Hence waiting for a size that stops changing.
+        //   • Switching the bridge on must not dump the folder's whole history
+        //     into the project that happens to be open. What is already there is
+        //     marked as seen; only later arrivals are imported.
+        //   • With no project open, nothing is imported AND nothing is marked,
+        //     so the file is picked up on the next pass instead of being lost.
+        // =====================================================================
+
+        var nodeFs = null, nodeOs = null;
+        try { nodeFs = require('fs'); nodeOs = require('os'); } catch (e) {}
+
+        var BRIDGE_POLL_MS = 2000;
+        var BRIDGE_SEEN_MAX = 4000;
+
+        var VIDEO_EXT = ['mp4','mov','mkv','avi','webm','m4v','mts','m2ts','wmv','ts','mpg','mpeg'];
+        var IMAGE_EXT = ['jpg','jpeg','png','webp','gif','tiff','tif','bmp','heic'];
+
+        var bridge = {
+            timer:   null,
+            busy:    false,
+            seen:    {},   // absolute path -> 1
+            sizes:   {},   // path -> size at the previous tick
+            count:   0,    // imported since this panel opened
+            lastMsg: ''
+        };
+
+        function bridgeEnabled() {
+            try { return checked('f-bridge-enabled'); } catch (e) { return false; }
+        }
+
+        function defaultWatchDir() {
+            return nodeOs ? joinPath(nodeOs.homedir(), 'Downloads', 'Pinterest') : '';
+        }
+
+        function watchDir() {
+            var raw = '';
+            try { raw = (val('f-watch-dir') || '').replace(/^\s+|\s+$/g, ''); } catch (e) {}
+            if (!raw) return defaultWatchDir();
+            if (raw.charAt(0) === '~' && nodeOs) return joinPath(nodeOs.homedir(), raw.substring(1).replace(/^[\/\\]+/, ''));
+            return raw.replace(/[\/\\]+$/, '');
+        }
+
+        function setBridgeStatus(text, kind) {
+            var el = document.getElementById('bridge-status');
+            if (!el) return;
+            if (!bridgeEnabled()) { el.className = ''; el.innerHTML = ''; return; }
+            bridge.lastMsg = text;
+            el.className = 'on' + (kind ? ' ' + kind : '');
+            el.innerHTML = '<span class="dot">●</span> Auto-import — ' + escapeHtml(text);
+        }
+
+        function isWatchedExt(ext) {
+            if (VIDEO_EXT.indexOf(ext) !== -1) return true;
+            var images = true;
+            try { images = checked('f-watch-images'); } catch (e) {}
+            return images && IMAGE_EXT.indexOf(ext) !== -1;
+        }
+
+        function loadBridgeSeen() {
+            bridge.seen = {};
+            try {
+                var raw = JSON.parse(localStorage.getItem('bridge-seen') || '[]');
+                for (var i = 0; i < raw.length; i++) bridge.seen[raw[i]] = 1;
+            } catch (e) {}
+        }
+
+        function saveBridgeSeen() {
+            try {
+                var list = [];
+                for (var k in bridge.seen) if (bridge.seen.hasOwnProperty(k)) list.push(k);
+                if (list.length > BRIDGE_SEEN_MAX) list = list.slice(list.length - BRIDGE_SEEN_MAX);
+                localStorage.setItem('bridge-seen', JSON.stringify(list));
+            } catch (e) {}
+        }
+
+        /** Importable files currently sitting in the folder, or null if unreadable. */
+        function scanWatchDir(dir) {
+            var out = [];
+            var entries;
+            try { entries = nodeFs.readdirSync(dir); } catch (e) { return null; }
+            for (var i = 0; i < entries.length; i++) {
+                var name = entries[i];
+                if (name.charAt(0) === '.') continue;
+                // Still downloading: the browser will rename it when it is done.
+                if (/\.(crdownload|part|tmp|download|partial)$/i.test(name)) continue;
+                var dot = name.lastIndexOf('.');
+                if (dot === -1) continue;
+                if (!isWatchedExt(name.substring(dot + 1).toLowerCase())) continue;
+                out.push(joinPath(dir, name));
+            }
+            return out;
+        }
+
+        /** On switch-on: everything already there counts as seen. */
+        function baselineWatchDir() {
+            var files = scanWatchDir(watchDir());
+            if (files === null) return -1;
+            for (var i = 0; i < files.length; i++) bridge.seen[files[i]] = 1;
+            saveBridgeSeen();
+            return files.length;
+        }
+
+        function bridgeLiveLabel() {
+            return bridge.count
+                ? 'watching · ' + bridge.count + ' imported since this panel opened'
+                : 'watching · nothing new yet';
+        }
+
+        function bridgeImport(paths) {
+            bridge.busy = true;
+            bridge.busySince = Date.now();
+            setBridgeStatus('importing ' + plural(paths.length, 'file') + '…');
+            // Never stay "busy" for good (bridgeTick gives up after a minute):
+            // while it is, Organize, Preview, Undo and every automatic pass wait.
+            var token = bridge.busySince;
+            var released = false;
+            function release() { if (!released) { released = true; if (bridge.busySince === token) bridge.busy = false; } }
+
+            // Same names as the organizer, trimmed the same way — otherwise a
+            // stray space or a blank field gave the bridge its own "images" bin.
+            var names = binNames();
+            var payload = literal({
+                paths: paths,
+                names: { broll: names.broll, images: names.images, other: names.other },
+                ignored:     splitList(val('f-ignored')),
+                colorLabels: checked('f-color-labels')
+            });
+
+            var cs, scriptPath;
+            try {
+                cs = new CSInterface();
+                scriptPath = cs.getSystemPath(SystemPath.EXTENSION) + '/OrganizeFilesInProject.jsx';
+            } catch (e) {
+                release();
+                setBridgeStatus('could not reach Premiere', 'warn');
+                return;
+            }
+
+            // Always evalFile first: the ExtendScript engine is reset whenever
+            // Premiere reloads it, and a missing importWatched would come back
+            // as an unparseable "EvalScript error" instead of a result.
+            cs.evalScript('$.evalFile(' + JSON.stringify(scriptPath) + ')', function() {
+                cs.evalScript(hostCall('importWatched', payload), function(result) {
+                    if (released || bridge.busySince !== token) return;   // given up on already
+                    release();
+                    var res = null;
+                    try { res = JSON.parse(result); } catch (e) {}
+
+                    if (!res) {
+                        setBridgeStatus('could not import — the script did not answer', 'warn');
+                        return;
+                    }
+                    if (res.noProject) {
+                        // Nothing marked seen: these come back on the next pass.
+                        setBridgeStatus(plural(paths.length, 'file') + ' waiting — no project open', 'idle');
+                        return;
+                    }
+
+                    for (var i = 0; i < paths.length; i++) bridge.seen[paths[i]] = 1;
+                    saveBridgeSeen();
+
+                    bridge.count += res.imported;
+
+                    var bits = [];
+                    if (res.byCat.broll)  bits.push(res.byCat.broll + ' b-roll');
+                    if (res.byCat.images) bits.push(res.byCat.images + ' image(s)');
+                    if (res.byCat.other)  bits.push(res.byCat.other + ' other');
+                    if (res.skipped)      bits.push(res.skipped + ' already in project');
+                    if (res.failed)       bits.push(res.failed + ' failed');
+
+                    setBridgeStatus(
+                        (bits.length ? bits.join(' · ') + ' — ' : '') + bridgeLiveLabel(),
+                        res.failed ? 'warn' : null
+                    );
+
+                    if (res.imported) {
+                        playChime();
+                        // Our own import must not read as "the user imported
+                        // something" on the next auto-organize poll: the files
+                        // are already filed. Re-baseline instead of triggering
+                        // a full re-sort of the project.
+                        try { refreshBaseline('bridge'); } catch (e) {}
+                    }
+                });
+            });
+        }
+
+        function bridgeTick() {
+            // An import Premiere never answered: let go after a minute.
+            if (bridge.busy && Date.now() - (bridge.busySince || 0) > 60000) {
+                bridge.busy = false;
+                bridge.busySince = 0;
+                setBridgeStatus('import took too long — will try again', 'warn');
+            }
+            if (!bridgeEnabled() || !nodeFs || bridge.busy) return;
+            // A run in progress owns the project; importing underneath it would
+            // move items the organizer is in the middle of counting.
+            if (typeof isRunning !== 'undefined' && isRunning) return;
+
+            var dir = watchDir();
+            var files = scanWatchDir(dir);
+            if (files === null) {
+                setBridgeStatus('folder not found: ' + dir, 'warn');
+                return;
+            }
+
+            var ready = [];
+            for (var i = 0; i < files.length; i++) {
+                var full = files[i];
+                if (bridge.seen[full]) continue;
+
+                var st;
+                try { st = nodeFs.statSync(full); } catch (e) { continue; }
+                if (!st.isFile() || st.size === 0) continue;
+
+                // Same size two ticks running = the write has finished.
+                if (bridge.sizes[full] !== st.size) {
+                    bridge.sizes[full] = st.size;
+                    continue;
+                }
+                ready.push(full);
+            }
+
+            if (ready.length) bridgeImport(ready);
+            else if (!bridge.lastMsg) setBridgeStatus(bridgeLiveLabel());
+        }
+
+        function startBridge(announce) {
+            if (!nodeFs || !nodeOs) {
+                document.getElementById('f-bridge-enabled').checked = false;
+                setBridgeStatus('Node is unavailable in this panel — bridge cannot run', 'warn');
+                return;
+            }
+            var fresh = baselineWatchDir();
+            if (fresh === -1) {
+                setBridgeStatus('folder not found: ' + watchDir(), 'warn');
+                return;
+            }
+
+            if (bridge.timer) clearInterval(bridge.timer);
+            bridge.timer = setInterval(bridgeTick, BRIDGE_POLL_MS);
+
+            // importWatched() lives in the .jsx and has been lost twice to a
+            // wholesale rewrite of that file. When it is gone the switch still
+            // reads "on" and every import fails silently. Ask once, at start,
+            // so the panel says so instead of quietly doing nothing.
+            try {
+                var cs0 = new CSInterface();
+                var p0 = cs0.getSystemPath(SystemPath.EXTENSION) + '/OrganizeFilesInProject.jsx';
+                cs0.evalScript('$.evalFile(' + JSON.stringify(p0) + ')', function() {
+                    cs0.evalScript('typeof ' + HOST + '.importWatched', function(t) {
+                        if (String(t).indexOf('function') === -1) {
+                            setBridgeStatus('Part of the panel is missing — reinstall Isma Organizer.', 'warn');
+                        }
+                    });
+                });
+            } catch (e) {}
+
+            setBridgeStatus(
+                announce && fresh
+                    ? 'watching · ' + plural(fresh, 'file') + ' already there left alone'
+                    : bridgeLiveLabel()
+            );
+        }
+
+        function stopBridge() {
+            if (bridge.timer) { clearInterval(bridge.timer); bridge.timer = null; }
+            bridge.lastMsg = '';
+            var el = document.getElementById('bridge-status');
+            if (el) { el.className = ''; el.innerHTML = ''; }
+        }
+
+        document.getElementById('f-bridge-enabled').addEventListener('change', function() {
+            playClick();
+            if (bridgeEnabled()) startBridge(true); else stopBridge();
+        });
+
+        document.getElementById('f-watch-dir').addEventListener('change', function() {
+            // A new folder starts from a clean baseline rather than importing
+            // everything it already contains.
+            if (bridgeEnabled()) startBridge(true);
+        });
+
+
+        loadBridgeSeen();
+        if (!document.getElementById('f-watch-dir').value) {
+            document.getElementById('f-watch-dir').value = defaultWatchDir();
+        }
+        loadUndo();
+        renderUndo();
+        if (bridgeEnabled()) startBridge(false);
+    </script>
+
+    <!-- B-roll tab: the former Pinterest B-roll panel script, unchanged in
+         spirit, private inside its own function. -->
+    <script>
+(function () {
+  'use strict';
+
+  var fs = null, os = null, NodeBuffer = null;
+  try { fs = require('fs'); os = require('os'); } catch (e) {}
+  try { NodeBuffer = (typeof Buffer !== 'undefined') ? Buffer : require('buffer').Buffer; } catch (e) {}
+  var path = null;
+  try { path = require('path'); } catch (e) {}
+
+  // Any computer, not just the one it was written on: paths are joined by
+  // Node (\ on Windows, / elsewhere), and Mac-only niceties check the platform.
+  function pjoin() {
+    var parts = [].slice.call(arguments);
+    return path ? path.join.apply(path, parts) : parts.join('/');
+  }
+  function platform() {
+    try { if (os && os.platform) return os.platform(); } catch (e) {}
+    return (typeof process !== 'undefined' && process.platform) ? process.platform : '';
+  }
+  function env(name) {
+    return (typeof process !== 'undefined' && process.env && process.env[name]) ? process.env[name] : '';
+  }
+
+  var VIDEO = ['mp4','mov','webm','m4v','mkv','m2ts','mts'];
+  var IMAGE = ['jpg','jpeg','png','webp','gif','tiff','heic'];
+
+  var el = function (id) { return document.getElementById(id); };
+  var grid = el('grid'), statusEl = el('status');
+
+  // One selection at a time. The grid used to build up a multi-selection that
+  // the buttons below acted on; in practice one b-roll is picked, looked at,
+  // and dragged — so a click now means "this one", and nothing else.
+  var state = { files: [], inProject: {}, selected: null, filter: 'all', query: '', unreadable: null };
+
+  // The folder is a setting of the panel ("B-roll folder", shared with
+  // Auto-import). Empty → Downloads/Pinterest in the home folder.
+  function rootDir() {
+    var raw = '';
+    try { var inp = document.getElementById('f-watch-dir'); raw = inp ? String(inp.value || '').replace(/^\s+|\s+$/g, '') : ''; } catch (e) {}
+    if (raw) {
+      if (raw.charAt(0) === '~' && os) return pjoin(os.homedir(), raw.substring(1).replace(/^[\/\\]+/, ''));
+      var trimmed = raw.replace(/[\/\\]+$/, '');
+      return /^[A-Za-z]:$/.test(trimmed) ? trimmed + '\\' : (trimmed || raw);
+    }
+    return pjoin(os ? os.homedir() : '', 'Downloads', 'Pinterest');
+  }
+
+  // Same key as the host's pathKey(): forward slashes, lower case, trimmed —
+  // on Windows the panel's paths have backslashes and the host's do not.
+  function pkey(p) { return String(p).replace(/\\/g, '/').replace(/^\s+|\s+$/g, '').toLowerCase(); }
+
+  // Premiere on Windows reads the dropped path with doubled backslashes —
+  // that is what Adobe's own sample panel (PProPanel) hands it.
+  function dragPath(p) { return platform() === 'win32' ? String(p).replace(/[\\\/]/g, '\\\\') : String(p); }
+
+  // Is the B-roll tab on screen? Outside a full page (the tests) it counts as yes.
+  function brollShown() {
+    var r = document.documentElement;
+    return !r || !r.classList || r.classList.contains('broll-mode');
+  }
+  // file:///Users/x/a%20b.mp4 on a Mac, file:///C:/Users/x/a%20b.mp4 on Windows.
+  function fileUrl(p) {
+    var s = String(p).replace(/\\/g, '/');
+    var drive = /^[A-Za-z]:\//.test(s) ? s.substring(0, 2) : '';
+    var rest = drive ? s.substring(2) : s;
+    return 'file://' + (drive ? '/' + drive : '') + rest.split('/').map(encodeURIComponent).join('/');
+  }
+
+  function human(bytes) {
+    if (bytes > 1048576) return (bytes / 1048576).toFixed(1) + ' MB';
+    return Math.max(1, Math.round(bytes / 1024)) + ' KB';
+  }
+
+  // "deco-salon-scandinave_771874823639535801_01.mp4" → "deco salon scandinave".
+  // The Pin id and the carousel index carry nothing a person searches for, and
+  // the dashes are the download extension's, not the Pin's.
+  function pinTitle(name) {
+    var base = String(name).replace(/\.[^.]+$/, '');
+    base = base.replace(/ \(\d+\)$/, '');
+    base = base.replace(/_\d{15,19}(?:_\d{1,3})?$/, '');
+    if (/^\d{15,19}$/.test(base) || /^[0-9a-f]{24,40}(_\d+w)?$/i.test(base)) return '';
+    return base.replace(/[-_]+/g, ' ').replace(/\s+/g, ' ').replace(/^\s+|\s+$/g, '');
+  }
+
+  // ---- folder ---------------------------------------------------------------
+
+  function scan(force) {
+    if (!fs) { setStatus('Node unavailable', true); return 0; }
+    var root = rootDir(), out = [], unreadable = 0;
+
+    function walk(dir) {
+      var entries;
+      try { entries = fs.readdirSync(dir); }
+      catch (e) {
+        // No folder yet (nothing downloaded so far) is "No b-roll yet", not a
+        // macOS refusal — the two used to get the same alarming message.
+        if (dir === root && e && e.code === 'ENOENT') return;
+        unreadable++;
+        return;
+      }
+      for (var i = 0; i < entries.length; i++) {
+        var name = entries[i];
+        if (name.charAt(0) === '.') continue;
+        var full = pjoin(dir, name), st;
+        try { st = fs.statSync(full); } catch (e) { continue; }
+        if (st.isDirectory()) { walk(full); continue; }
+        if (/\.(crdownload|part|tmp|download|partial)$/i.test(name)) continue;
+        var dot = name.lastIndexOf('.');
+        if (dot === -1) continue;
+        var ext = name.substring(dot + 1).toLowerCase();
+        var kind = VIDEO.indexOf(ext) !== -1 ? 'video' : (IMAGE.indexOf(ext) !== -1 ? 'image' : null);
+        if (!kind) continue;
+        var title = pinTitle(name);
+        out.push({
+          path: full, name: name, ext: ext, kind: kind, size: st.size, mtime: st.mtimeMs,
+          title: title,
+          // What search looks at: the readable title and the raw name, once,
+          // lower-cased here rather than on every keystroke for every card.
+          hay: (title + ' ' + name).toLowerCase()
+        });
+      }
+    }
+
+    walk(root);
+    // Newest first: the clip you want is nearly always the one you just saved.
+    out.sort(function (a, b) { return b.mtime - a.mtime; });
+    state.files = out;
+
+    // Pin id → local file, so a Pinterest result already saved (by this
+    // panel or by the browser extension) shows as such and drags at once.
+    localByPin = {};
+    for (var lp = 0; lp < out.length; lp++) {
+      var idm = /_(\d{15,19})(?:_\d{1,3})?\.[a-z0-9]+$/i.exec(out[lp].name);
+      if (idm && !localByPin[idm[1]]) localByPin[idm[1]] = out[lp];
+    }
+
+    // Remembered on the state, not just written to the status line: render()
+    // ends by rewriting that line, which used to wipe the warning and leave a
+    // permissions failure looking exactly like an empty folder.
+    state.unreadable = (!out.length && unreadable) ? root : null;
+
+    // A file deleted on disk must not stay selected — it would be handed to
+    // Premiere as a path to nothing on the next drag.
+    if (state.selected) {
+      var stillThere = false;
+      for (var s2 = 0; s2 < out.length; s2++) if (out[s2].path === state.selected) { stillThere = true; break; }
+      if (!stillThere) { state.selected = null; closeLightbox(); }
+    }
+
+    tagRed(out.length);
+
+    // Paint here rather than waiting for the host to answer — but only when the
+    // folder actually changed: the 30 s poll used to tear the grid down twice a
+    // minute (thumbnails, observers, hover preview) for nothing.
+    var sig = folderSignature();
+    if (force || sig !== lastSignature) {
+      lastSignature = sig;
+      render();
+      if (mode === 'pin') renderPin();
+    }
+    return out.length;
+  }
+
+  var localByPin = {};
+
+  var lastSignature = null;
+
+  function folderSignature() {
+    var newest = 0;
+    for (var i = 0; i < state.files.length; i++) {
+      if (state.files[i].mtime > newest) newest = state.files[i].mtime;
+    }
+    return state.files.length + '|' + newest + '|' + (state.unreadable ? 'x' : '');
+  }
+
+  // ---- red Finder tag -------------------------------------------------------
+  // A launchd agent cannot do this: macOS gates ~/Downloads behind TCC and
+  // refuses a background process outright. Premiere holds that access, and a
+  // child process inherits it. tag-broll.py writes the binary plist Finder
+  // actually reads — `xattr -w` with a plain string would be silently ignored.
+
+  var TAGGER = null;
+  var lastTagCount = -1;
+  var lastTagAt = 0;
+
+  // Finder tags exist on macOS only. And /usr/bin/python3 is a stub there
+  // until Apple's command line tools are installed: calling it pops an
+  // "install developer tools" window on someone else's Mac. So only a real
+  // interpreter, and nothing at all elsewhere — the red tag is a nicety.
+  var TAG_PY;
+  function tagPython() {
+    if (TAG_PY !== undefined) return TAG_PY;
+    TAG_PY = '';
+    if (platform() !== 'darwin' || !fs) return TAG_PY;
+    var c = ['/opt/homebrew/bin/python3', '/usr/local/bin/python3'];
+    try {
+      if (fs.existsSync('/Library/Developer/CommandLineTools/usr/bin/python3') || fs.existsSync('/Applications/Xcode.app')) {
+        c.push('/usr/bin/python3');
+      }
+    } catch (e) {}
+    for (var i = 0; i < c.length; i++) {
+      try { if (fs.existsSync(c[i])) { TAG_PY = c[i]; break; } } catch (e) {}
+    }
+    return TAG_PY;
+  }
+
+  var tagLater = null;
+
+  function tagRed(fileCount) {
+    // This spawns a python process. Only when the folder has actually changed,
+    // and at most once a minute — a change inside the minute is deferred, not
+    // dropped, so the newest download still gets its tag.
+    if (fileCount === lastTagCount) return;
+    var now = Date.now();
+    if (now - lastTagAt < 60000) {
+      if (!tagLater) {
+        tagLater = setTimeout(function () { tagLater = null; tagRed(state.files.length); },
+                              60000 - (now - lastTagAt));
+      }
+      return;
+    }
+    lastTagCount = fileCount;
+    lastTagAt = now;
+
+    var opt = document.getElementById('f-broll-tag');
+    if (!opt || !opt.checked) return;      // a setting, off unless asked for
+    var py = tagPython();
+    if (!py) return;
+    var cp;
+    try { cp = require('child_process'); } catch (e) { return; }
+    if (!TAGGER) {
+      try { TAGGER = pjoin(new CSInterface().getSystemPath(SystemPath.EXTENSION), 'tag-broll.py'); }
+      catch (e) { return; }
+    }
+    try {
+      cp.execFile(py, [TAGGER, rootDir()], { timeout: 30000 },
+        function (err, stdout, stderr) {
+          // tag-broll.py goes to trouble to report a TCC refusal; throwing that
+          // away meant tagging could be broken for months without a word.
+          if (String(stderr || '').indexOf('Operation not permitted') !== -1) {
+            setStatus('macOS is blocking access to the downloads folder', true);
+          }
+        });
+    } catch (e) { /* a nicety, never a blocker */ }
+  }
+
+  // ---- search ---------------------------------------------------------------
+  // Every word must match, anywhere in the title or the file name, in any
+  // order: "beach sunset" finds "sunset-beach_7718…mp4". One word matching
+  // used to be enough, which made two-word searches wider, not narrower.
+
+  function queryWords() {
+    return state.query.toLowerCase().split(/\s+/).filter(function (w) { return w.length > 0; });
+  }
+
+  function visible() {
+    var words = queryWords();
+    return state.files.filter(function (f) {
+      if (state.filter !== 'all' && f.kind !== state.filter) return false;
+      for (var i = 0; i < words.length; i++) {
+        if (f.hay.indexOf(words[i]) === -1) return false;
+      }
+      return true;
+    });
+  }
+
+  // ---- rendering ------------------------------------------------------------
+
+  var cardByPath = {};
+  var dragging = false;
+  var renderAfterDrag = false;
+
+  function render() {
+    // Rebuilding the grid under a drag removes its source card, and dragend
+    // then never fires. Defer until the drop lands.
+    if (dragging) { renderAfterDrag = true; return; }
+    stopPreview();
+    cardByPath = {};
+    // An IntersectionObserver holds its targets strongly, and clearing the grid
+    // does not release them. Every card that never scrolled into view stayed
+    // alive with its listeners — and render() runs on every keystroke.
+    if (io) io.disconnect();
+    // Rebuilding threw the view back to the top — mid-scroll through a hundred
+    // pins, every arriving download yanked him back to the first row.
+    var keepScroll = grid.scrollTop;
+    var list = visible();
+    grid.textContent = '';
+
+    if (!list.length) {
+      var empty = document.createElement('div');
+      empty.className = 'empty';
+      var b = document.createElement('b');
+      b.textContent = state.unreadable ? 'Cannot read that folder'
+                    : (state.files.length ? 'Nothing matches' : 'No b-roll yet');
+      empty.appendChild(b);
+      empty.appendChild(document.createTextNode(
+        state.unreadable
+          ? state.unreadable + (platform() === 'darwin'
+              ? ' — it may have been moved, or macOS is not letting Premiere read it: System Settings › Privacy & Security › Files and Folders › Adobe Premiere Pro.'
+              : ' — it may have been moved or renamed. The folder is set in Organize › More settings › B-roll.')
+          : (state.files.length ? 'Try other words, or clear the filter.'
+                                : 'Nothing saved yet. Find clips with Pinterest above, or put videos in ' + rootDir() + '.')
+      ));
+      if (!state.unreadable && !state.files.length) {
+        var go = document.createElement('button');
+        go.className = 'ghost';
+        go.textContent = 'Search Pinterest';
+        go.addEventListener('click', function () { setMode('pin'); });
+        empty.appendChild(document.createElement('br'));
+        empty.appendChild(go);
+      }
+      grid.appendChild(empty);
+      updateStatus(list);
+      return;
+    }
+
+    list.forEach(function (f) {
+      var key = pkey(f.path);
+      var have = !!state.inProject[key];
+
+      var card = document.createElement('div');
+      // "in project" is a badge, not a dimmed tile: a b-roll already imported
+      // is just as draggable as any other, and greying it read as "disabled".
+      card.className = 'card' + (state.selected === f.path ? ' sel' : '');
+      card.title = f.name;
+      card.draggable = true;
+      card.addEventListener('dragstart', function (ev) { beginDrag(ev, f, thumb.querySelector('img')); });
+      card.addEventListener('dragend', endDrag);
+
+      var thumb = document.createElement('div');
+      thumb.className = 'thumb';
+      var spin = document.createElement('div');
+      spin.className = 'spin';
+      spin.textContent = f.kind === 'video' ? '▶' : '·';
+      thumb.appendChild(spin);
+      card.appendChild(thumb);
+
+      var badge = document.createElement('span');
+      badge.className = 'badge' + (have ? ' have' : '');
+      badge.textContent = have ? '✓ in project' : f.ext;
+      card.appendChild(badge);
+
+      var meta = document.createElement('div');
+      meta.className = 'meta';
+      var n = document.createElement('div');
+      n.className = 'n';
+      n.textContent = f.title || f.name;
+      var sz = document.createElement('div');
+      sz.className = 's';
+      sz.textContent = human(f.size);
+      meta.appendChild(n);
+      meta.appendChild(sz);
+      card.appendChild(meta);
+
+      // One click: this is the one. It opens large, with sound, and can be
+      // dragged from there — no more opening the file in the Finder to see it.
+      card.addEventListener('click', function () { select(f); openLightbox(f); });
+      if (f.kind === 'video') {
+        card.addEventListener('mouseenter', function () { armPreview(f, thumb, card); });
+        card.addEventListener('mouseleave', stopPreview);
+      }
+
+      grid.appendChild(card);
+      cardByPath[f.path] = card;
+      queueThumb(f, thumb);
+    });
+
+    if (keepScroll) grid.scrollTop = keepScroll;
+    updateStatus(list);
+  }
+
+  // By path, never by name: the same file name in two sub-folders is common
+  // (a Pin saved twice), and both cards used to light up.
+  function select(f) {
+    state.selected = f.path;
+    for (var pth in cardByPath) {
+      if (cardByPath.hasOwnProperty(pth) && cardByPath[pth].classList) {
+        cardByPath[pth].classList.toggle('sel', pth === f.path);
+      }
+    }
+    updateStatus();
+  }
+
+  function thumbImageFor(f) {
+    var card = cardByPath[f.path];
+    return card && card.querySelector ? card.querySelector('.thumb img') : null;
+  }
+
+  // ---- drag & drop ----------------------------------------------------------
+  //
+  // THE format that works. Chromium's own DownloadURL / text/uri-list are
+  // ignored by Premiere; Adobe exposes a dedicated MIME type for dragging
+  // files out of a CEP panel into the host, one indexed entry per file:
+  //   com.adobe.cep.dnd.file.0 … each holding an absolute PATH.
+  // Confirmed by reading how Premiere Composer does it. Always exactly one
+  // file here: what you grab is what you drop.
+
+  var dragGuard = null;
+
+  function beginDrag(ev, f, dragImg) {
+    stopPreview();
+    dragging = true;
+    // dragend is not guaranteed if the drop lands somewhere odd; never let a
+    // missed one freeze the grid for the rest of the session.
+    clearTimeout(dragGuard);
+    dragGuard = setTimeout(function () { if (dragging) endDrag(null); }, 30000);
+    try {
+      ev.dataTransfer.effectAllowed = 'copy';
+      ev.dataTransfer.setData('com.adobe.cep.dnd.file.0', dragPath(f.path));
+      // A decoded thumbnail makes a readable ghost; an undecoded <img> or a
+      // 900 px frame does not.
+      var ghost = dragImg || thumbImageFor(f);
+      if (ghost && ghost.complete !== false && ev.dataTransfer.setDragImage) {
+        ev.dataTransfer.setDragImage(ghost, 30, 20);
+      }
+    } catch (e) {}
+    select(f);
+    setStatus('Dragging ' + (f.title || f.name) + '…');
+  }
+
+  function endDrag(ev) {
+    clearTimeout(dragGuard);
+    dragging = false;
+    var cancelled = false;
+    try { cancelled = !!(ev && ev.dataTransfer && ev.dataTransfer.dropEffect === 'none'); } catch (e) {}
+    setStatus(cancelled ? 'Drag cancelled' : 'Dropped — check the timeline');
+    if (renderAfterDrag) { renderAfterDrag = false; render(); }
+    // Premiere imports the dropped file on its own; the badge should follow
+    // without waiting a minute for the next project poll.
+    if (!cancelled) setTimeout(refreshProject, 1500);
+  }
+
+  // ---- large preview (lightbox) --------------------------------------------
+  //
+  // A 104 px tile says nothing about a clip. Clicking opens it over the grid at
+  // panel size, with sound and controls; ← → walk the grid without closing;
+  // the frame itself is draggable, so "look, then drop" is one gesture.
+
+  var lb = { open: false, file: null, video: null };
+
+  function lbEls() {
+    return { box: el('lightbox'), stage: el('lb-stage'), name: el('lb-name'), info: el('lb-info') };
+  }
+
+  function openLightbox(f) {
+    var ui = lbEls();
+    if (!ui.box) return;
+    stopPreview();
+    closeMedia();
+
+    lb.open = true;
+    lb.file = f;
+    lightboxKeys(true);
+    ui.box.hidden = false;
+    ui.box.classList.add('open');
+    ui.name.textContent = f.title || f.name;
+    ui.info.textContent = f.name + ' · ' + human(f.size);
+    ui.stage.textContent = '';
+
+    if (f.kind === 'video') {
+      var video = document.createElement('video');
+      video.controls = true;
+      video.loop = true;
+      video.autoplay = true;
+      video.playsInline = true;
+      video.preload = 'auto';
+      video.src = fileUrl(f.path);
+      ui.stage.appendChild(video);
+      lb.video = video;
+      var p = video.play && video.play();
+      if (p && p['catch']) p['catch'](function () {});
+    } else {
+      var img = document.createElement('img');
+      img.src = fileUrl(f.path);
+      img.alt = f.name;
+      ui.stage.appendChild(img);
+    }
+  }
+
+  function closeMedia() {
+    if (lb.video) {
+      try { lb.video.pause(); lb.video.removeAttribute('src'); lb.video.load(); } catch (e) {}
+      lb.video = null;
+    }
+  }
+
+  function closeLightbox() {
+    var ui = lbEls();
+    if (!lb.open || !ui.box) return;
+    closeMedia();
+    ui.stage.textContent = '';
+    ui.box.classList.remove('open');
+    ui.box.hidden = true;
+    lb.open = false;
+    lb.file = null;
+    lightboxKeys(false);
+  }
+
+  // Premiere gets the keyboard unless the panel asks for some keys: without
+  // this, Space in the preview played the timeline and the arrows moved the
+  // playhead. Asked for only while the preview is open.
+  function lightboxKeys(on) {
+    try {
+      var cs = new CSInterface();
+      if (!cs.registerKeyEventsInterest) return;
+      if (!on) { cs.registerKeyEventsInterest('[]'); return; }
+      var codes = platform() === 'win32' ? [27, 37, 39, 32] : [53, 123, 124, 49];   // Esc, left, right, space
+      var list = [];
+      for (var i = 0; i < codes.length; i++) list.push({ keyCode: codes[i] });
+      cs.registerKeyEventsInterest(JSON.stringify(list));
+    } catch (e) {}
+  }
+
+  function stepLightbox(delta) {
+    if (!lb.open || !lb.file) return;
+    var list = visible();
+    var idx = -1;
+    for (var i = 0; i < list.length; i++) if (list[i].path === lb.file.path) { idx = i; break; }
+    if (idx === -1) return;
+    var next = list[idx + delta];
+    if (!next) return;
+    select(next);
+    openLightbox(next);
+    // Keep the selected card in view behind the overlay.
+    var card = cardByPath[next.path];
+    if (card && card.scrollIntoView) {
+      try { card.scrollIntoView({ block: 'nearest' }); } catch (e) {}
+    }
+  }
+
+  function wireLightbox() {
+    var ui = lbEls();
+    if (!ui.box) return;
+    // Click on the dark backdrop closes; click inside the frame does not.
+    ui.box.addEventListener('click', function (ev) {
+      if (ev.target === ui.box) closeLightbox();
+    });
+    var closeBtn = el('lb-close'), prev = el('lb-prev'), next = el('lb-next');
+    if (closeBtn) closeBtn.addEventListener('click', closeLightbox);
+    if (prev) prev.addEventListener('click', function () { stepLightbox(-1); });
+    if (next) next.addEventListener('click', function () { stepLightbox(1); });
+
+    // The whole frame is a drag handle for the file it shows — except the
+    // strip holding the video's own controls: a mouse drag on the scrub bar
+    // must scrub, not start a file drag.
+    var frame = el('lb-frame');
+    if (frame) {
+      frame.draggable = true;
+      frame.addEventListener('dragstart', function (ev) {
+        if (!lb.file) return;
+        var t = ev.target;
+        if (t && t.tagName === 'VIDEO' && typeof ev.offsetY === 'number' &&
+            ev.offsetY > (t.clientHeight || 0) - 48) {
+          ev.preventDefault();
+          return;
+        }
+        beginDrag(ev, lb.file, thumbImageFor(lb.file));
+      });
+      frame.addEventListener('dragend', endDrag);
+    }
+
+    document.addEventListener('keydown', function (ev) {
+      if (!lb.open) return;
+      // The search field keeps its own keys: arrows move the caret there, and
+      // its Escape clears the field (see the #q handler) rather than closing.
+      if (ev.target && ev.target.id === 'q' && ev.key !== 'Escape') return;
+      if (ev.key === 'Escape') { closeLightbox(); ev.preventDefault(); }
+      else if (ev.key === 'ArrowLeft') { stepLightbox(-1); ev.preventDefault(); }
+      else if (ev.key === 'ArrowRight') { stepLightbox(1); ev.preventDefault(); }
+      else if (ev.key === ' ' && lb.video) {
+        if (lb.video.paused) { var p = lb.video.play(); if (p && p['catch']) p['catch'](function () {}); }
+        else lb.video.pause();
+        ev.preventDefault();
+      }
+    });
+  }
+
+  // ---- hover preview --------------------------------------------------------
+  //
+  // One at a time, and only once the pointer has settled: sweeping across the
+  // grid would otherwise start and tear down a decoder per card crossed.
+
+  var preview = { timer: null, video: null, badge: null, hidden: null };
+
+  function armPreview(f, thumb, card) {
+    if (lb.open) return;
+    clearTimeout(preview.timer);
+    preview.timer = setTimeout(function () { startPreview(f, thumb, card); }, 220);
+  }
+
+  function startPreview(f, thumb, card) {
+    stopPreview();
+    if (lb.open) return;
+    var video = document.createElement('video');
+    video.muted = true;
+    video.loop = true;
+    video.playsInline = true;
+    video.preload = 'auto';
+    video.src = fileUrl(f.path);
+    thumb.appendChild(video);
+
+    // The card already carries a badge on the left; on a 104 px tile the two
+    // collide into unreadable mush. Hide it for the duration.
+    var other = card.querySelector('.badge');
+    if (other) other.style.visibility = 'hidden';
+
+    var badge = document.createElement('span');
+    badge.className = 'badge play';
+    badge.textContent = 'preview';
+    card.appendChild(badge);
+    preview.hidden = other;
+
+    preview.video = video;
+    preview.badge = badge;
+
+    video.addEventListener('canplay', function () {
+      if (preview.video === video) video.classList.add('on');
+    });
+    var p = video.play();
+    if (p && p['catch']) p['catch'](function () {});
+  }
+
+  function stopPreview() {
+    clearTimeout(preview.timer);
+    if (preview.video) {
+      try { preview.video.pause(); preview.video.removeAttribute('src'); preview.video.load(); } catch (e) {}
+      if (preview.video.parentNode) preview.video.parentNode.removeChild(preview.video);
+      preview.video = null;
+    }
+    if (preview.badge) {
+      if (preview.badge.parentNode) preview.badge.parentNode.removeChild(preview.badge);
+      preview.badge = null;
+    }
+    if (preview.hidden) { preview.hidden.style.visibility = ''; preview.hidden = null; }
+  }
+
+  // ---- still thumbnails -----------------------------------------------------
+  // Lazy, capped, and cached on disk. Decoding a hundred videos at once wedges
+  // the panel; decoding them again at every launch wasted the first twenty
+  // seconds of every session. A thumbnail, once drawn, is written to
+  // ~/Library/Caches/PinterestBroll and read straight from there next time.
+
+  var thumbQueue = [], thumbBusy = 0, thumbCache = {};
+  var latestNode = {};   // thumbKey → the card currently showing that file
+  var diskMiss = {};     // thumbKey → true once the cache folder said "not here"
+  var THUMB_MAX = 3;
+
+  var io = ('IntersectionObserver' in window)
+    ? new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+          if (!entry.isIntersecting) return;
+          io.unobserve(entry.target);
+          if (entry.target.__job) { thumbQueue.push(entry.target.__job); pump(); }
+        });
+      }, { root: grid, rootMargin: '250px' })
+    : null;
+
+  var FAILED = {};    // sentinels as objects: unique, and no stray bytes in the source
+  var PENDING = {};
+
+  function thumbKey(f) { return f.path + '|' + f.mtime; }
+
+  var CACHE_DIR = null;
+  function cacheDir() {
+    if (CACHE_DIR !== null) return CACHE_DIR;
+    CACHE_DIR = '';
+    if (!fs || !os) return CACHE_DIR;
+    try {
+      var dir = thumbCacheBase();
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+      CACHE_DIR = dir;
+    } catch (e) { CACHE_DIR = ''; }
+    return CACHE_DIR;
+  }
+
+  // Where each system keeps app caches. The Mac folder is the one the old
+  // standalone panel used, so thumbnails already drawn are not drawn again.
+  function thumbCacheBase() {
+    var home = os.homedir(), plat = platform();
+    if (plat === 'darwin') return pjoin(home, 'Library', 'Caches', 'PinterestBroll');
+    if (plat === 'win32') return pjoin(env('LOCALAPPDATA') || pjoin(home, 'AppData', 'Local'), 'IsmaOrganizer', 'BrollThumbs');
+    return pjoin(home, '.cache', 'IsmaOrganizer', 'broll-thumbs');
+  }
+
+  // djb2 over path|mtime|size: short, stable, and no crypto module needed.
+  function cacheName(f) {
+    var s = f.path + '|' + f.mtime + '|' + f.size, h = 5381;
+    for (var i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0;
+    return (h >>> 0).toString(16) + '-' + (f.size % 100000).toString(16) + '.jpg';
+  }
+
+  function cachedThumbUrl(f) {
+    var dir = cacheDir();
+    if (!dir) return null;
+    var p = pjoin(dir, cacheName(f));
+    try { if (fs.existsSync(p)) return fileUrl(p); } catch (e) {}
+    return null;
+  }
+
+  // Returns the file:// URL of what was written, or null.
+  function storeThumb(f, dataUrl) {
+    var dir = cacheDir();
+    if (!dir || !NodeBuffer || !dataUrl || dataUrl.indexOf('data:image/jpeg;base64,') !== 0) return null;
+    var p = pjoin(dir, cacheName(f));
+    try {
+      fs.writeFileSync(p, NodeBuffer.from(dataUrl.substring(23), 'base64'));
+      return fileUrl(p);
+    } catch (e) { return null; /* a cache miss next time, nothing worse */ }
+  }
+
+  // Once, a little after launch: drop cached thumbnails for files that no
+  // longer exist (moved, renamed, re-downloaded). Otherwise the folder only
+  // ever grows.
+  function pruneCache() {
+    var dir = cacheDir();
+    if (!dir) return;
+    try {
+      var keep = {};
+      for (var i = 0; i < state.files.length; i++) keep[cacheName(state.files[i])] = true;
+      var names = fs.readdirSync(dir);
+      for (var n = 0; n < names.length; n++) {
+        if (/\.jpg$/.test(names[n]) && !keep[names[n]]) {
+          try { fs.unlinkSync(pjoin(dir, names[n])); } catch (e) {}
+        }
+      }
+    } catch (e) {}
+  }
+
+  function queueThumb(f, node) {
+    // Keyed on mtime too: a file replaced at the same path used to keep the
+    // previous thumbnail for the rest of the session.
+    var k = thumbKey(f);
+    latestNode[k] = node;
+    if (thumbCache[k]) {
+      // PENDING: a decode is already running for this file — the result will
+      // be painted on whichever card shows it by then. Re-queueing it held a
+      // slot for six seconds per keystroke.
+      if (thumbCache[k] !== FAILED && thumbCache[k] !== PENDING) paint(node, thumbCache[k]);
+      return;
+    }
+    // On disk from a previous session: no decoding at all, just an <img>.
+    // One stat per file per session, not per render.
+    if (!diskMiss[k]) {
+      var onDisk = cachedThumbUrl(f);
+      if (onDisk) {
+        thumbCache[k] = onDisk;
+        paint(node, onDisk);
+        return;
+      }
+      diskMiss[k] = true;
+    }
+    var job = { f: f, node: node };
+    node.__job = job;
+    if (io) io.observe(node); else { thumbQueue.push(job); pump(); }
+  }
+
+  function paint(node, url) {
+    var spin = node.querySelector('.spin');
+    if (spin && spin.parentNode) spin.parentNode.removeChild(spin);
+    var img = document.createElement('img');
+    img.src = url;
+    node.insertBefore(img, node.firstChild);
+  }
+
+  function pump() {
+    while (thumbBusy < THUMB_MAX && thumbQueue.length) {
+      var job = thumbQueue.shift();
+      var key = thumbKey(job.f);
+      if (thumbCache[key]) continue;            // done or already decoding
+      if (!job.node.isConnected && latestNode[key] === job.node) continue;
+      thumbBusy++;
+      thumbCache[key] = PENDING;
+      (function (job, key) {
+        makeThumb(job.f, function (dataUrl) {
+          thumbBusy--;
+          // Remember failures too. Without this, a file that never decodes was
+          // re-queued on every render — and each attempt held one of the slots
+          // for the full six-second guard, so a few bad files starved the
+          // queue and no thumbnail painted again all session.
+          if (!dataUrl) { thumbCache[key] = FAILED; pump(); return; }
+          // Keep the small file URL in memory, not a 15 KB data URL per card.
+          var url = storeThumb(job.f, dataUrl) || dataUrl;
+          thumbCache[key] = url;
+          var target = latestNode[key] || job.node;
+          if (target && target.isConnected) paint(target, url);
+          pump();
+        });
+      })(job, key);
+    }
+  }
+
+  function makeThumb(f, done) {
+    if (f.kind === 'image') {
+      var img = new Image();
+      var settledI = false;
+      function finishImage(url) {
+        if (settledI) return;
+        settledI = true;
+        clearTimeout(imgGuard);
+        done(url);
+      }
+      // An image that neither loads nor errors — a half-written file, a
+      // stalled volume — must not hold its slot for ever.
+      var imgGuard = setTimeout(function () { finishImage(null); }, 6000);
+      img.onload = function () { finishImage(draw(img, img.naturalWidth, img.naturalHeight)); };
+      img.onerror = function () { finishImage(null); };
+      img.src = fileUrl(f.path);
+      return;
+    }
+    var video = document.createElement('video');
+    video.preload = 'metadata';
+    video.muted = true;
+    var settled = false;
+    function finish(url) {
+      if (settled) return;
+      settled = true;
+      try { video.removeAttribute('src'); video.load(); } catch (e) {}
+      done(url);
+    }
+    // A clip Premiere can read is not always one this panel can decode; never
+    // let one bad file hold a slot for ever.
+    var guard = setTimeout(function () { finish(null); }, 6000);
+    video.onloadeddata = function () {
+      try { video.currentTime = Math.min(1, (video.duration || 2) / 3); } catch (e) { finish(null); }
+    };
+    video.onseeked = function () { clearTimeout(guard); finish(draw(video, video.videoWidth, video.videoHeight)); };
+    video.onerror = function () { clearTimeout(guard); finish(null); };
+    video.src = fileUrl(f.path);
+  }
+
+  function draw(source, w, h) {
+    if (!w || !h) return null;
+    var W = 260;
+    var canvas = document.createElement('canvas');
+    canvas.width = W;
+    canvas.height = Math.max(1, Math.round(h * (W / w)));
+    try {
+      canvas.getContext('2d').drawImage(source, 0, 0, canvas.width, canvas.height);
+      return canvas.toDataURL('image/jpeg', 0.74);
+    } catch (e) { return null; }
+  }
+
+  // ---- host -----------------------------------------------------------------
+
+  var HOST_TIMEOUT_MS = 15000;
+  var busy = false;
+  var pendingRefresh = false;
+
+  /**
+   * Every host call, guarded. The callback is guaranteed to fire, so a busy or
+   * wedged ExtendScript engine cannot leave the panel waiting for ever; and the
+   * result of $.evalFile is checked, so a missing or broken ImportBroll.jsx is
+   * named rather than reported as "did not answer".
+   */
+  function callHost(call, cb) {
+    var done = false;
+    busy = true;
+
+    function once(res, why) {
+      if (done) return;
+      done = true;
+      clearTimeout(guard);
+      busy = false;
+      if (why) warn(why);
+      cb(res);
+      if (pendingRefresh) { pendingRefresh = false; refreshProject(); }
+    }
+    var guard = setTimeout(function () {
+      once(null, 'Premiere did not answer — is it busy?');
+    }, HOST_TIMEOUT_MS);
+
+    try {
+      var cs = new CSInterface();
+      var script = cs.getSystemPath(SystemPath.EXTENSION) + '/ImportBroll.jsx';
+      cs.evalScript('$.evalFile(' + JSON.stringify(script) + ')', function (loaded) {
+        if (String(loaded).indexOf('EvalScript error') !== -1) {
+          once(null, 'ImportBroll.jsx is missing or broken');
+          return;
+        }
+        cs.evalScript(call, function (res) {
+          if (String(res).indexOf('EvalScript error') !== -1) {
+            once(null, 'The host script failed — reinstall the panel');
+            return;
+          }
+          once(res);
+        });
+      });
+    } catch (e) {
+      once(null, 'Cannot reach Premiere');
+    }
+  }
+
+  function refreshProject() {
+    if (busy) { pendingRefresh = true; return; }
+    callHost('PQDBroll.projectMedia()', function (res) {
+      var parsed = null;
+      try { parsed = JSON.parse(res); } catch (e) {}
+      // A host that did not answer (busy, no project, script missing) says
+      // nothing about the project: the badges from the last good answer stay.
+      if (!parsed || !parsed.ok) return;
+      var next = {};
+      parsed.paths.forEach(function (p) { next[p] = true; });
+      var changed = JSON.stringify(Object.keys(next).sort()) !== JSON.stringify(Object.keys(state.inProject).sort());
+      state.inProject = next;
+      if (changed) render(); else updateStatus();
+    });
+  }
+
+  // ---- status ---------------------------------------------------------------
+
+  function setStatus(text, isWarn) {
+    statusEl.className = 'count' + (isWarn ? ' warn' : '');
+    statusEl.textContent = text;
+  }
+
+  // A warning must outlive the next render: updateStatus() rewrites the line
+  // on every grid rebuild, which used to erase "Premiere did not answer" in
+  // the same tick it was written.
+  var warning = { text: '', until: 0 };
+  function warn(text) {
+    warning = { text: text, until: Date.now() + 8000 };
+    setStatus(text, true);
+  }
+
+  function updateStatus(list) {
+    if (mode === 'pin') { pinStatus(); return; }
+    var shown = list || visible();
+    if (warning.text && Date.now() < warning.until) {
+      setStatus(warning.text, true);
+      return;
+    }
+    warning.text = '';
+    if (state.unreadable) {
+      // A folder macOS refuses to open is not an empty folder, and saying
+      // "No b-roll yet" there sends him hunting for the wrong problem.
+      statusEl.className = 'count warn';
+      statusEl.textContent = 'Cannot read ' + state.unreadable;
+      return;
+    }
+    var have = 0;
+    for (var i = 0; i < shown.length; i++) if (state.inProject[pkey(shown[i].path)]) have++;
+    statusEl.className = 'count';
+    statusEl.innerHTML = '<b>' + shown.length + '</b> / <b>' + state.files.length + '</b>'
+                       + (have ? ' · <b>' + have + '</b> in project' : '');
+  }
+
+  // ---- Pinterest mode -------------------------------------------------------
+  //
+  // A second search: type, Enter, and the videos Pinterest would show for that
+  // query appear as tiles — thumbnails only, straight from Pinterest's CDN.
+  // Click one to save it into the downloads folder (PinterestClient.js does
+  // the fetching and the ffmpeg join); the tile then turns teal and drags to
+  // the timeline like any local b-roll. Nothing is fetched until you ask.
+
+  var mode = 'local';
+  var pgrid = el('pgrid');
+  var pin = {
+    client: null, clientError: '',
+    query: '', bookmark: null, results: [], busy: false, exhausted: false,
+    downloads: {},      // id → { state, frac, label, path, error }
+    cards: {},          // id → card element (current render)
+    lastMsg: ''
+  };
+
+  function pinClient() {
+    if (pin.client) return pin.client;
+    try {
+      // A test can hand in a fake; the panel loads the real module next to it.
+      if (window.__PQDPinterest) pin.client = window.__PQDPinterest;
+      else {
+        var extDir = new CSInterface().getSystemPath(SystemPath.EXTENSION);
+        pin.client = require(extDir + '/PinterestClient.js').create({ extensionDir: extDir });
+      }
+    } catch (e) {
+      pin.clientError = 'Part of the panel is missing — reinstall Isma Organizer.';
+    }
+    return pin.client;
+  }
+
+  function setMode(m) {
+    if (m === mode) return;
+    mode = m;
+    stopPreview();
+    closeLightbox();
+    el('m-local').classList.toggle('on', m === 'local');
+    el('m-pin').classList.toggle('on', m === 'pin');
+    el('row-local').hidden = (m !== 'local');
+    el('row-pin').hidden = (m !== 'pin');
+    grid.hidden = (m !== 'local');
+    pgrid.hidden = (m !== 'pin');
+    el('hint').textContent = (m === 'pin')
+      ? 'Click to save · then drag to the timeline'
+      : 'Click to view · drag to the timeline';
+    if (m === 'pin') {
+      var c = pinClient();
+      renderPin();
+      // Say it before the first click, not after: most Pinterest videos need ffmpeg.
+      try {
+        if (c && c.findFfmpeg && !c.findFfmpeg() && c.ffmpegMissing) {
+          pinStatus(c.ffmpegMissing().replace('Saving this video', 'Saving most Pinterest videos'), true);
+        }
+      } catch (e) {}
+      try { el('pq').focus(); } catch (e) {}
+    } else {
+      updateStatus();
+    }
+  }
+
+  function pinStatus(text, isWarn) {
+    if (text !== undefined) { pin.lastMsg = text; setStatus(text, isWarn); return; }
+    if (pin.clientError) { setStatus(pin.clientError, true); return; }
+    if (pin.busy) { setStatus(pin.results.length ? 'Loading more…' : 'Searching Pinterest…'); return; }
+    if (!pin.query) { setStatus('Type what you are looking for, then press Enter'); return; }
+    var saved = 0;
+    for (var i = 0; i < pin.results.length; i++) if (savedFileFor(pin.results[i])) saved++;
+    statusEl.className = 'count';
+    statusEl.innerHTML = '<b>' + pin.results.length + '</b> video' + (pin.results.length === 1 ? '' : 's')
+      + (saved ? ' · <b>' + saved + '</b> saved' : '')
+      + (pin.exhausted ? '' : ' · scroll for more');
+  }
+
+  function savedFileFor(p) {
+    var d = pin.downloads[p.id];
+    if (d && d.state === 'done' && d.path) return { path: d.path, name: p.fileName, size: d.size || 0 };
+    var f = localByPin[p.id];
+    return f ? { path: f.path, name: f.name, size: f.size } : null;
+  }
+
+  function fmtDuration(ms) {
+    var s = Math.round((ms || 0) / 1000);
+    if (!s) return '';
+    return Math.floor(s / 60) + ':' + (s % 60 < 10 ? '0' : '') + (s % 60);
+  }
+
+  function pinSearch(query, append) {
+    var q = String(query || '').replace(/^\s+|\s+$/g, '');
+    var client = pinClient();
+    if (!client) { pinStatus(pin.clientError, true); return; }
+    if (!q) { pin.query = ''; pin.results = []; pin.bookmark = null; renderPin(); pinStatus(); return; }
+    if (pin.busy) return;
+    if (!append) {
+      pin.query = q; pin.results = []; pin.bookmark = null; pin.exhausted = false;
+      pgrid.scrollTop = 0;
+    }
+    pin.busy = true;
+    pinStatus();
+    client.search(q, append ? pin.bookmark : null, function (err, res) {
+      pin.busy = false;
+      if (err) {
+        // A failed search leaves no stale tiles from the previous one.
+        if (!append) { pin.results = []; renderPin(friendly(err)); }
+        pinStatus(friendly(err), true);
+        return;
+      }
+      var seen = {};
+      for (var i = 0; i < pin.results.length; i++) seen[pin.results[i].id] = true;
+      for (var j = 0; j < res.pins.length; j++) {
+        if (!seen[res.pins[j].id]) { pin.results.push(res.pins[j]); seen[res.pins[j].id] = true; }
+      }
+      pin.bookmark = res.bookmark;
+      if (!res.bookmark || !res.pins.length) pin.exhausted = true;
+      renderPin();
+      pinStatus();
+    });
+  }
+
+  // Network and Pinterest failures, in words a person can act on.
+  function friendly(err) {
+    var m = String((err && err.message) || err || '');
+    if (/ENOTFOUND|ECONNREFUSED|ECONNRESET|ETIMEDOUT|EAI_AGAIN|unreachable|timed out|network/i.test(m)) {
+      return "Can't reach Pinterest. Check your internet connection, then try again.";
+    }
+    if (/HTTP 4(03|29)|refused/i.test(m)) return 'Pinterest is limiting searches. Wait a minute, then try again.';
+    if (/not JSON|endpoint/i.test(m)) return 'Pinterest changed its search and it stopped working here — check for an update of the panel.';
+    return m;
+  }
+
+  function renderPin(message) {
+    pin.cards = {};
+    pgrid.textContent = '';
+    if (!pin.results.length) {
+      var empty = document.createElement('div');
+      empty.className = 'empty';
+      var b = document.createElement('b');
+      b.textContent = message ? 'Search failed' : (pin.query ? (pin.busy ? 'Searching…' : 'Nothing found') : 'Search Pinterest');
+      empty.appendChild(b);
+      empty.appendChild(document.createTextNode(message ? message : pin.query
+        ? (pin.busy ? '' : 'Try other words.')
+        : 'Type a few words above and press Enter. Videos only. Click a result to save it into ' + rootDir() + '.'));
+      pgrid.appendChild(empty);
+      return;
+    }
+    for (var i = 0; i < pin.results.length; i++) pgrid.appendChild(pinCard(pin.results[i]));
+  }
+
+  function pinCard(p) {
+    var card = document.createElement('div');
+    card.className = 'card pin';
+    card.title = p.title || p.fileName;
+
+    var thumb = document.createElement('div');
+    thumb.className = 'thumb';
+    if (p.color) thumb.style.background = p.color;
+    var img = document.createElement('img');
+    img.src = p.thumb;
+    img.alt = '';
+    img.draggable = false;
+    thumb.appendChild(img);
+    if (p.durationMs) {
+      var dur = document.createElement('span');
+      dur.className = 'dur';
+      dur.textContent = fmtDuration(p.durationMs);
+      thumb.appendChild(dur);
+    }
+    card.appendChild(thumb);
+
+    var badge = document.createElement('span');
+    badge.className = 'badge';
+    card.appendChild(badge);
+    // Kept on the tile: the state painter runs on every progress tick and
+    // must not go looking through the DOM for what it just built.
+    card.__thumb = thumb; card.__badge = badge; card.__img = img;
+
+    var meta = document.createElement('div');
+    meta.className = 'meta';
+    var n = document.createElement('div');
+    n.className = 'n';
+    n.textContent = p.title || 'Untitled video';
+    meta.appendChild(n);
+    if (p.pinner) {
+      var who = document.createElement('div');
+      who.className = 'p';
+      who.textContent = p.pinner + (p.width ? ' · ' + p.width + '×' + p.height : '');
+      meta.appendChild(who);
+    }
+    card.appendChild(meta);
+
+    card.addEventListener('click', function () {
+      var saved = savedFileFor(p);
+      if (saved) { openLightbox(localEntry(p, saved)); return; }
+      var d = pin.downloads[p.id];
+      if (d && d.state === 'downloading') return;
+      pinDownload(p);
+    });
+    card.addEventListener('dragstart', function (ev) {
+      var saved = savedFileFor(p);
+      if (!saved) { ev.preventDefault(); return; }
+      beginDrag(ev, localEntry(p, saved), card.__img);
+    });
+    card.addEventListener('dragend', endDrag);
+
+    pin.cards[p.id] = card;
+    paintPinState(p);
+    return card;
+  }
+
+  /** A Pinterest result that is on disk, in the shape the lightbox and the drag expect. */
+  function localEntry(p, saved) {
+    return { path: saved.path, name: saved.name, title: p.title, kind: 'video', size: saved.size || 0, ext: 'mp4' };
+  }
+
+  function paintPinState(p) {
+    var card = pin.cards[p.id];
+    if (!card) return;
+    var badge = card.__badge, thumb = card.__thumb;
+    if (card.__dl && card.__dl.parentNode) card.__dl.parentNode.removeChild(card.__dl);
+    if (card.__state && card.__state.parentNode) card.__state.parentNode.removeChild(card.__state);
+    card.__dl = null; card.__state = null;
+    card.classList.remove('saved', 'failed');
+    card.draggable = false;
+
+    var d = pin.downloads[p.id];
+    var saved = savedFileFor(p);
+    if (saved) {
+      card.classList.add('saved');
+      card.draggable = true;
+      if (badge) { badge.className = 'badge have'; badge.textContent = '✓ saved'; }
+      return;
+    }
+    if (d && d.state === 'downloading') {
+      if (badge) { badge.className = 'badge'; badge.textContent = Math.round(d.frac * 100) + '%'; }
+      var bar = document.createElement('div');
+      bar.className = 'dl';
+      var fill = document.createElement('i');
+      fill.style.width = Math.round(d.frac * 100) + '%';
+      bar.appendChild(fill);
+      thumb.appendChild(bar);
+      var st = document.createElement('div');
+      st.className = 'state';
+      st.textContent = d.label || 'downloading';
+      thumb.appendChild(st);
+      card.__dl = bar; card.__state = st;
+      return;
+    }
+    if (d && d.state === 'error') {
+      card.classList.add('failed');
+      if (badge) { badge.className = 'badge get'; badge.textContent = 'retry'; }
+      var se = document.createElement('div');
+      se.className = 'state';
+      se.textContent = d.error;
+      se.title = d.error;
+      thumb.appendChild(se);
+      card.__state = se;
+      return;
+    }
+    if (badge) { badge.className = 'badge get'; badge.textContent = 'save'; }
+  }
+
+  function pinDownload(p) {
+    var client = pinClient();
+    if (!client) { pinStatus(pin.clientError, true); return; }
+    pin.downloads[p.id] = { state: 'downloading', frac: 0, label: 'starting' };
+    paintPinState(p);
+    pinStatus('Saving ' + (p.title || 'video') + '…');
+    client.download(p, rootDir(), function (frac, label) {
+      var d = pin.downloads[p.id];
+      if (!d || d.state !== 'downloading') return;
+      d.frac = Math.max(0, Math.min(1, frac || 0));
+      d.label = label || d.label;
+      paintPinState(p);
+    }, function (err, res) {
+      if (err) {
+        pin.downloads[p.id] = { state: 'error', error: err.message };
+        paintPinState(p);
+        pinStatus(err.message, true);
+        return;
+      }
+      var size = 0;
+      try { size = fs.statSync(res.path).size; } catch (e) {}
+      pin.downloads[p.id] = { state: 'done', path: res.path, size: size };
+      paintPinState(p);
+      pinStatus('Saved — drag it to the timeline');
+      // The local grid sees it too, at once rather than at the watcher's leisure.
+      scan(true);
+    });
+  }
+
+  // ---- wiring ---------------------------------------------------------------
+
+  // Each keystroke rebuilt ~700 elements. A short settle is invisible to the
+  // user and removes the stutter.
+  var searchTimer = null;
+  el('q').addEventListener('input', function () {
+    var value = this.value;
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(function () { state.query = value; render(); }, 140);
+  });
+  el('q').addEventListener('keydown', function (ev) {
+    if (ev.key !== 'Escape') return;
+    // The lightbox owns the first Escape; the field is cleared by the next one.
+    if (lb.open) return;
+    clearTimeout(searchTimer);
+    this.value = '';
+    state.query = '';
+    render();
+  });
+  ['all', 'video', 'image'].forEach(function (kind) {
+    el('bf-' + kind).addEventListener('click', function () {
+      state.filter = kind;
+      ['all', 'video', 'image'].forEach(function (k) { el('bf-' + k).classList.toggle('on', k === kind); });
+      render();
+    });
+  });
+  el('refresh').addEventListener('click', function () { scan(true); refreshProject(); });
+
+  wireLightbox();
+
+  el('m-local').addEventListener('click', function () { setMode('local'); });
+  el('m-pin').addEventListener('click', function () { setMode('pin'); });
+  el('pgo').addEventListener('click', function () { pinSearch(el('pq').value, false); });
+  el('pq').addEventListener('keydown', function (ev) {
+    if (ev.key === 'Enter') { ev.preventDefault(); pinSearch(this.value, false); }
+    else if (ev.key === 'Escape' && !lb.open) { this.value = ''; }
+  });
+  // Near the bottom of the results → next page. One page at a time.
+  pgrid.addEventListener('scroll', function () {
+    if (mode !== 'pin' || pin.busy || pin.exhausted || !pin.bookmark) return;
+    if (pgrid.scrollTop + pgrid.clientHeight >= pgrid.scrollHeight - 300) pinSearch(pin.query, true);
+  });
+
+  // Nothing is read until the B-roll tab is first opened: on a Mac, reading
+  // Downloads makes macOS ask for permission, and someone who only uses
+  // Organize should never see that question.
+  var started = false;
+  function startBroll() {
+    if (started) return;
+    started = true;
+    scan(true);
+    refreshProject();
+    setTimeout(pruneCache, 10000);
+    watchFolder();
+  }
+  document.addEventListener('isma-tab', function (ev) {
+    if (!ev || ev.detail !== 'broll') return;
+    if (!started) startBroll();
+    else { scan(); refreshProject(); }
+  });
+  var dirInput = document.getElementById('f-watch-dir');
+  if (dirInput && dirInput.addEventListener) {
+    dirInput.addEventListener('change', function () {
+      if (!started) return;
+      try { if (watcher) watcher.close(); } catch (e) {}
+      watcher = null;
+      scan(true);
+      watchFolder();
+    });
+  }
+
+  // The folder is WATCHED, not polled: a download shows up within a second of
+  // finishing instead of up to fifteen later. A short settle absorbs the burst
+  // of events a browser emits while writing and renaming. The interval below
+  // stays as a fallback — fs.watch on macOS goes quiet after a folder is
+  // moved, and cannot start before the folder exists — so it re-arms the
+  // watcher whenever it is missing, and refreshes the badges once a minute.
+  var watchTimer = null;
+  var watcher = null;
+  function watchFolder() {
+    if (watcher || !fs || !fs.watch) return;
+    try {
+      var w = fs.watch(rootDir(), { recursive: true }, function () {
+        clearTimeout(watchTimer);
+        watchTimer = setTimeout(function () { scan(); }, 800);
+      });
+      if (w && w.on) {
+        w.on('error', function () {
+          try { w.close(); } catch (e) {}
+          if (watcher === w) watcher = null;   // the poll re-arms it
+        });
+      }
+      watcher = w;
+    } catch (e) { /* folder missing: the poll retries */ }
+  }
+  if (brollShown()) startBroll();
+
+  var ticks = 0;
+  setInterval(function () {
+    // Hidden tab: nothing to keep fresh. The project scan is a call into
+    // Premiere that freezes it for up to a second on a big project — it ran
+    // every minute even for someone who never opened this tab.
+    if (!started || !brollShown()) return;
+    if (!watcher) watchFolder();
+    scan();
+    // The "in project" badges go stale as soon as another project is opened,
+    // or media is imported by any other route. Once a minute is enough.
+    if (++ticks % 2 === 0) refreshProject();
+  }, 30000);
+})();
+</script>
+
+    <!-- Tab switch. Plain DOM, no state but the last tab (per viewer, in
+         localStorage). Leaving the B-roll tab closes its large preview, whose
+         keys would otherwise still answer Esc and the arrows. -->
+    <script data-part="tabs">
+    (function () {
+        var KEY = 'isma-tab';
+        var root = document.documentElement;
+        var btnOrg = document.getElementById('tab-btn-organize');
+        var btnBroll = document.getElementById('tab-btn-broll');
+        function show(name) {
+            var broll = (name === 'broll');
+            if (!broll) {
+                var lb = document.getElementById('lightbox'), close = document.getElementById('lb-close');
+                if (lb && !lb.hidden && close) close.click();
+            }
+            if (broll) root.classList.add('broll-mode'); else root.classList.remove('broll-mode');
+            btnOrg.className = broll ? '' : 'on';
+            btnBroll.className = broll ? 'on' : '';
+            btnOrg.setAttribute('aria-selected', broll ? 'false' : 'true');
+            btnBroll.setAttribute('aria-selected', broll ? 'true' : 'false');
+            try { localStorage.setItem(KEY, broll ? 'broll' : 'organize'); } catch (e) {}
+            try { document.dispatchEvent(new CustomEvent('isma-tab', { detail: broll ? 'broll' : 'organize' })); } catch (e) {}
+        }
+        btnOrg.addEventListener('click', function () { show('organize'); });
+        btnBroll.addEventListener('click', function () { show('broll'); });
+        var saved = null;
+        try { saved = localStorage.getItem(KEY); } catch (e) {}
+        show(saved === 'broll' ? 'broll' : 'organize');
+    })();
+    </script>
+</body>
+</html>
