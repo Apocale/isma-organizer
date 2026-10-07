@@ -12,10 +12,9 @@ How the merge is built (`index.html`):
   data-part="tabs">` switch them by toggling `html.broll-mode`, remember the
   last tab in `localStorage` (`isma-tab`), and close the large preview when
   leaving the B-roll tab.
-- The B-roll CSS is scoped under `#tab-broll`. Since 2.7.0 the whole panel
-  wears the Windows 7 look (see the stylesheet's header): the tab is an
-  Explorer window — command bar, search box, "Large icons" view with the blue
-  selection — and the large preview is a Photo Viewer window.
+- The B-roll CSS is the former panel's, every selector scoped under
+  `#tab-broll`. The organizer styles every `<button>` as its big glossy green
+  one; a reset block stops that from leaking onto the B-roll controls.
 - The B-roll script is the one plain `<script>` block, already private inside
   its own function. The organizer script stays the first
   `<script type="text/javascript">` block (its tests read it from there).
