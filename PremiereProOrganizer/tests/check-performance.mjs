@@ -136,8 +136,14 @@ console.log('\n4) Importing a batch of sequences into their own bin (how "jours 
   const rep = JSON.parse(h.O.resetAndOrganize(payload('incremental', 'sequences')));
   check('the imported sequences stay in their bin', imported.every((o, i) => h.pathOf(o) === before[i]), before[0] + ' / ' + before[1]);
   check('nothing moved, no timeline read (none active), < 3 000 calls', rep.total === 0 && rep.clipsRead === 0 && h.calls() < 3000, `${rep.total} moved · ${rep.scan} · ${h.calls()} calls`);
+  // The button (2.6.1): the import's own "08 nested sequence" is a plugin bin
+  // inside the user's bin, so its 15 nests go to 08 and it disappears; the 15
+  // edits sitting directly in "Sources 9-30 CB5" stay there.
   const manual = JSON.parse(h.O.resetAndOrganize(payload('incremental')));
-  check('the Organize button leaves them alone too (a user bin)', imported.every((o, i) => h.pathOf(o) === before[i]) && manual.total === 0, `${manual.total} moved`);
+  const nests = imported.filter((o, i) => i % 2), edits = imported.filter((o, i) => !(i % 2));
+  check('the Organize button files the nests of the import\'s "08 nested sequence"', manual.total === 15 &&
+        nests.every((o) => h.pathOf(o) === '08 nested sequence'), `${manual.total} moved`);
+  check('…and leaves the edits in the user\'s "Sources 9-30 CB5"', edits.every((o) => h.pathOf(o) === 'Sources 9-30 CB5'), h.pathOf(edits[0]));
 }
 
 console.log(`\n${failed ? failed + ' failure(s)' : 'Premiere is not frozen by the automatic pass'}\n`);

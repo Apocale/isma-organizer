@@ -221,6 +221,30 @@ marcher sur plein d'autres ordinateurs". So:
   file, or if any file of the repository names the home folder of the
   computer running the tests.
 
+## Import leftovers inside the user's own bins (2.6.1)
+
+Asked 2026-10-07: "l'organizer ne range pas bien… il n'y a pas de dossiers
+qui se créent, beaucoup de fichiers éparpillés partout". Read on Client B 6:
+every day the sequences of a "Sources …" project are imported, and Premiere
+rebuilds that project's bins under the user's own "02 rushes & nests (jours)":
+47 bins named like the plugin's ("video", "nested sequence", "02 video",
+"00 offline", "music & sound effect", "screenshots"…). Organize never entered
+a user bin, so it filed 4 items and said everything else was in place.
+
+The rule (`collectStrayBins` / `walkUserBin` in the `.jsx`): below a user bin,
+at any depth, a bin carrying a plugin name (a category; an old name only with
+*Merge old bins*) is an import leftover. Its content is filed like a new
+import and it goes once empty. Nothing else in the user's bins moves; a user
+bin goes only when this run left it empty (`emptiedBins` in the report). The
+automatic pass after a Nest does not walk the user's bins. This settles the
+open question of 2026-09-30 for plugin-named bins only: the user's own named
+bins ("Rushes 10-1", the edits sitting in "Sources 10-4") stay untouched.
+
+Replayed on 12 real projects: 11 unchanged item for item; Client B 6 files
+136 items instead of 4, its bins go from 101 to 40, Undo restores all 850
+items. Cost: +0.24 s on the biggest walk (Client B 6), +0.47 s over the 12.
+Tests: `check-plan.mjs` 33, `check-import-leftovers.mjs`, `check-performance.mjs` 4.
+
 ## Public release (2.6.0)
 
 Asked 2026-10-07: "je veux que ça soit une application publique… si je le

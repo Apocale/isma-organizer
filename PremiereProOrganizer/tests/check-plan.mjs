@@ -701,7 +701,7 @@ console.log('\n27) What an import slips INSIDE the plugin\'s bins (2.5.1)');
   const P = (it) => h.pathOf(it);
   const opts = { ignored: ['Keep me'], legacyBins: true };
   const pv = JSON.parse(h.O.previewOrganize(payload('incremental', opts)));
-  check('Preview names the leftover bins, moves nothing', pv.leftoverBins.length === 4 && P(ns81) === '01 sequence/nested sequence',
+  check('Preview names the leftover bins, moves nothing', pv.leftoverBins.length === 5 && P(ns81) === '01 sequence/nested sequence',
         JSON.stringify(pv.leftoverBins));
   const rep = JSON.parse(h.O.resetAndOrganize(payload('incremental', opts)));
   check('Preview predicted the run', pv.total === rep.total, `${pv.total} / ${rep.total}`);
@@ -717,7 +717,11 @@ console.log('\n27) What an import slips INSIDE the plugin\'s bins (2.5.1)');
   check('…and its stray edit goes to 01 sequence', P(stray) === '01 sequence', P(stray));
   check('a sub-bin on the Ignore list is not opened', P(ns6) === '01 sequence/Keep me', P(ns6));
   check('a media bin\'s sub-bin is the user\'s (03 b-roll/Cuisine)', P(ns7) === '03 b-roll/Cuisine', P(ns7));
-  check('the user\'s own bin is never entered, even its "nested sequence"', P(ns8) === 'Sources 10-3/nested sequence', P(ns8));
+  // Until 2.6.0 the user's own bins were never entered, so this nest stayed in
+  // "Sources 10-3/nested sequence". 2.6.1 (see 33): a bin with a plugin name
+  // is an import leftover wherever it sits, and the bin it leaves empty goes.
+  check('a "nested sequence" inside the user\'s "Sources 10-3" is a leftover too → 08', P(ns8) === '08 nested sequence', P(ns8));
+  check('…and "Sources 10-3", left empty, goes', !h.binAt('Sources 10-3'));
   check('Client C ads: the edit in "other/Sequence" → 01 sequence', P(newAds) === '01 sequence', P(newAds));
   check('…the user sub-bin "other/Vid1" is left alone', P(ns9) === 'other/Vid1', P(ns9));
   check('no non-empty bin was ever deleted', h.violations.length === 0, h.violations.join(', ') || 'none');
@@ -725,7 +729,8 @@ console.log('\n27) What an import slips INSIDE the plugin\'s bins (2.5.1)');
   check('a second click moves nothing', again.total === 0, String(again.total));
   const undo = JSON.parse(h.O.undoOrganize(JSON.stringify(rep.undo)));
   check('Undo recreates the leftover bins and puts everything back', undo.failed === 0 && P(ns81) === '01 sequence/nested sequence' &&
-        P(rush2) === '01 sequence/video/Old' && P(newAds) === 'other/Sequence' && P(hook) === '01 sequence/9-29 V1', JSON.stringify(undo));
+        P(rush2) === '01 sequence/video/Old' && P(newAds) === 'other/Sequence' && P(hook) === '01 sequence/9-29 V1' &&
+        P(ns8) === 'Sources 10-3/nested sequence', JSON.stringify(undo));
 
   // the automatic pass after a Nest stays at the top
   const g = freshProject();
@@ -885,6 +890,97 @@ console.log('\n32) A new project with empty sequences: no sequence is opened (2.
   h.O.resetAndOrganize(payload('incremental'));
   check('Organize did not open the sequences one by one in Premiere', opened === 0, opened + ' opened');
   check('both are filed as edits', h.pathOf(s1) === '01 sequence' && h.pathOf(s2) === '01 sequence');
+}
+
+console.log('\n33) Bins an import left INSIDE the user\'s own bins are filed (2.6.1)');
+// Client B 6, 07/10: every day the sequences of a "Sources …" project are
+// imported, and Premiere rebuilds that project's bins under the user's own
+// "02 rushes & nests (jours)/Sources 10-4": "video", "nested sequence",
+// "music & sound effect", "screenshots"… Organize never looked inside the
+// user's bins: 47 duplicate bins, 136 items left scattered, "all in place".
+{
+  const build = () => {
+    const h = makeHost();
+    const { root, bin, clip, move } = h;
+    const days = bin('02 rushes & nests (jours)'); move(days, root);
+    const rushes = bin('Rushes 10-1'); move(rushes, days);
+    const r1 = clip('C0012.MP4', '/Volumes/Cam/C0012.MP4'); move(r1, rushes);
+    const prepared = bin('Sources 10-8'); move(prepared, days);          // empty, prepared on purpose
+    const src = bin('Sources 10-4'); move(src, days);
+    const vid = bin('video'); move(vid, src);
+    const v1 = clip('A010.mp4', '/Volumes/Cam/A010.mp4'); move(v1, vid);
+    const nestBin = bin('nested sequence'); move(nestBin, src);
+    const music = bin('music & sound effect'); move(music, src);
+    const musicSub = bin('Music'); move(musicSub, music);
+    const song = clip('theme.mp3', '/Volumes/Audio/theme.mp3'); move(song, musicSub);
+    const shots = bin('screenshots'); move(shots, src);
+    const png = clip('Screenshot 1.png', '/Users/editor/Desktop/Screenshot 1.png'); move(png, shots);
+    // the day's edit sits directly in the user's bin and uses a nest
+    const nest = clip('Hook nest', '', { seq: true });
+    const edit = clip('10-4 final', '', { seq: true });
+    h.addSeq('10-4 final', [nest], edit); move(edit, src);
+    h.addSeq('Hook nest', [], nest); move(nest, nestBin);
+    // an older import one level deeper, holding nothing but a plugin bin
+    const old = bin('9-29 V1 edit'); move(old, days);
+    const oldSrc = bin('Sources 9-29'); move(oldSrc, old);
+    const old08 = bin('08 nested sequence'); move(old08, oldSrc);
+    const n7 = clip('Nested Sequence 07', '', { seq: true }); h.addSeq('Nested Sequence 07', [], n7); move(n7, old08);
+    // the same at the root of the project
+    const rootSrc = bin('Sources 9-30'); move(rootSrc, root);
+    const rootMusic = bin('music & sound effect'); move(rootMusic, rootSrc);
+    const riser = clip('riser.wav', '/Volumes/Audio/riser.wav'); move(riser, rootMusic);
+    // on the Ignore list: never opened, even with a plugin bin inside
+    const keep = bin('Keep me'); move(keep, root);
+    const keepVid = bin('video'); move(keepVid, keep);
+    const k1 = clip('B001.mp4', '/Volumes/Cam/B001.mp4'); move(k1, keepVid);
+    return { h, r1, v1, song, png, nest, edit, n7, riser, k1 };
+  };
+  const user = { legacyBins: true, ignored: ['Keep me'] };
+  const all = (t) => ['r1', 'v1', 'song', 'png', 'nest', 'edit', 'n7', 'riser', 'k1'].map((k) => t.h.pathOf(t[k]));
+
+  const t = build();
+  const start = all(t);
+  const pv = JSON.parse(t.h.O.previewOrganize(payload('incremental', user)));
+  check('Preview names the 6 bins it will empty', pv.leftoverBins.length === 6, pv.leftoverBins.join(' | '));
+  check('…and moves nothing', JSON.stringify(all(t)) === JSON.stringify(start));
+
+  const rep = JSON.parse(t.h.O.resetAndOrganize(payload('incremental', user)));
+  const P = (k) => t.h.pathOf(t[k]);
+  check('a video from the import → 02 video', P('v1') === '02 video', P('v1'));
+  check('its music, even one level deeper (music & sound effect/Music) → audio/Music', P('song') === '04 music & sound effect/Music', P('song'));
+  check('its screenshot → 05 images', P('png') === '05 images', P('png'));
+  check('its nest, used by the day\'s edit → 08', P('nest') === '08 nested sequence', P('nest'));
+  check('a nest two bins deeper (9-29 V1 edit/Sources 9-29/08 nested sequence) → 08', P('n7') === '08 nested sequence', P('n7'));
+  check('an import at the root of the project is filed too', P('riser') === '04 music & sound effect/SFX', P('riser'));
+  check('the day\'s edit stays in the user\'s "Sources 10-4"', P('edit') === '02 rushes & nests (jours)/Sources 10-4', P('edit'));
+  check('the user\'s "Rushes 10-1" is not touched', P('r1') === '02 rushes & nests (jours)/Rushes 10-1', P('r1'));
+  check('the Ignore list wins, plugin bin inside or not', P('k1') === 'Keep me/video', P('k1'));
+  check('the emptied duplicates are gone', !t.h.binAt('02 rushes & nests (jours)/Sources 10-4/video') && !t.h.binAt('02 rushes & nests (jours)/Sources 10-4/music & sound effect'));
+  check('"Sources 10-4" stays: it still holds the edit', !!t.h.binAt('02 rushes & nests (jours)/Sources 10-4'));
+  check('a bin left empty by this run goes ("9-29 V1 edit", "Sources 9-30")', !t.h.binAt('02 rushes & nests (jours)/9-29 V1 edit') && !t.h.binAt('Sources 9-30'));
+  check('a bin that was empty before stays ("Sources 10-8")', !!t.h.binAt('02 rushes & nests (jours)/Sources 10-8'));
+  check('the report names the bins it left empty', (rep.emptiedBins || []).length === 3 && rep.emptiedBins.indexOf('Sources 9-30') !== -1, JSON.stringify(rep.emptiedBins));
+  check('no deleteBin() on a bin that still held something', t.h.violations.length === 0, t.h.violations.join(', '));
+
+  const back = JSON.parse(t.h.O.undoOrganize(JSON.stringify(rep.undo)));
+  check('Undo puts all 6 moved items back', back.restored === 6 && back.failed === 0, JSON.stringify(back));
+  check('…each in the bin it came from, rebuilt where needed', JSON.stringify(all(t)) === JSON.stringify(start), JSON.stringify(all(t)));
+
+  const t2 = build();
+  t2.h.O.resetAndOrganize(payload('incremental', user));
+  const again = JSON.parse(t2.h.O.resetAndOrganize(payload('incremental', user)));
+  check('a second click has nothing left to do', again.total === 0, String(again.total));
+
+  // a new user: old names ("video", "nested sequence"…) may be bins of their own
+  const t3 = build();
+  t3.h.O.resetAndOrganize(payload('incremental', { ignored: ['Keep me'] }));
+  check('new user: a bin named "video" inside their bin is left alone', t3.h.pathOf(t3.v1) === '02 rushes & nests (jours)/Sources 10-4/video', t3.h.pathOf(t3.v1));
+  check('new user: a numbered "08 nested sequence" inside their bin is still filed', t3.h.pathOf(t3.n7) === '08 nested sequence', t3.h.pathOf(t3.n7));
+
+  // the automatic pass after a Nest stays instant: it never walks the user's bins
+  const t4 = build();
+  t4.h.O.resetAndOrganize(payload('incremental', Object.assign({ only: 'sequences' }, user)));
+  check('automatic pass after a Nest: the user\'s bins are not opened', t4.h.pathOf(t4.v1) === '02 rushes & nests (jours)/Sources 10-4/video' && t4.h.pathOf(t4.n7) === '02 rushes & nests (jours)/9-29 V1 edit/Sources 9-29/08 nested sequence', t4.h.pathOf(t4.n7));
 }
 
 console.log(`\n${failed ? failed + ' failure(s)' : 'the organizer keeps its promises'}\n`);

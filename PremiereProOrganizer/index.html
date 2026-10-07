@@ -1125,9 +1125,16 @@
         function leftoverBinsLine(res, preview) {
             var list = (res && res.leftoverBins) || [];
             if (!list.length) return '';
-            return '<span class="report-why">🧹 ' + plural(list.length, 'stray bin')
-                + ' inside the numbered bins ' + (preview ? 'will be' : 'were') + ' emptied and removed: '
-                + list.slice(0, 4).map(escapeHtml).join(', ') + (list.length > 4 ? '…' : '') + '</span>';
+            // Paths can be long ("02 rushes/Sources 10-4/video"): the last two
+            // segments say enough. Bins an import put inside the numbered bins
+            // or inside the user's own bins; then the user bins they left empty.
+            var short = function (p) { return String(p).split('/').slice(-2).join('/'); };
+            var shells = (!preview && res.emptiedBins) ? res.emptiedBins.length : 0;
+            return '<span class="report-why">🧹 ' + plural(list.length, 'bin') + ' left by imports, named like this panel\'s, '
+                + (preview ? 'will be' : (list.length === 1 ? 'was' : 'were')) + ' emptied and removed: '
+                + list.slice(0, 3).map(short).map(escapeHtml).join(', ') + (list.length > 3 ? '…' : '')
+                + (shells ? '. ' + plural(shells, 'bin') + ' left empty by that ' + (shells === 1 ? 'was' : 'were') + ' removed too' : '')
+                + '.</span>';
         }
 
         function plural(n, word) {
@@ -1603,6 +1610,7 @@
                 detail.scan = (typeof res.scan === 'string') ? res.scan : 'none';   // none | active | full
                 detail.clips_lus = res.clipsRead || 0;
                 detail.restes_import = (res.leftoverBins || []).length;
+                detail.chutiers_vides_retires = (res.emptiedBins || []).length;
                 detail.par_regle = res.byRule || 0;
                 if (res.debug && res.debug.version) detail.version = res.debug.version;
             }

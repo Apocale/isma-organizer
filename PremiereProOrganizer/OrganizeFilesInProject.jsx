@@ -118,7 +118,7 @@ if (typeof JSON !== "object" || JSON === null) { JSON = {}; }
 
 var IsmaOrganizer = (function () {
 
-var VERSION = "2.6.0";
+var VERSION = "2.6.1";
 
 // Étiquettes Premiere Pro : 0 Violet, 1 Iris, 2 Caribbean, 3 Lavender,
 // 4 Cerulean, 5 Forest, 6 Rose, 7 Mango, 8 Purple, 9 Blue, 10 Teal,
@@ -207,6 +207,7 @@ function resetAndOrganize(payloadJSON) {
     } catch (e) {}
     // Le rapport nomme les restes d'import vraiment supprimés, pas ceux vus.
     report.leftoverBins = ctx.leftoverDeleted;
+    report.emptiedBins = ctx.userShellDeleted;
 
     // En DERNIER : la racine. deleteEmptyBins() vient de modifier l'arbre,
     // donc le panneau est de nouveau périmé — c'est le tout dernier geste
@@ -682,6 +683,9 @@ function buildContext(p) {
         leftoverBins:   [],                        // restes d'import trouvés dans nos chutiers (chemins)
         leftoverTop:    {},                        // nodeId → chemin, pour le rapport
         leftoverDeleted: [],                       // ceux réellement supprimés
+        binDepth:       {},                        // nodeId → profondeur, pour le ménage (sous-chutiers d'abord)
+        userShell:      {},                        // chutiers de l'utilisateur qui menaient à un reste d'import
+        userShellDeleted: [],                      // ceux que le passage a laissés vides, donc retirés
         // Anciens chutiers du plugin (« video », « other »… sans numéro) :
         // seulement si l'utilisateur l'a demandé. Sinon un « Video » à lui
         // était vidé puis supprimé au premier clic.
@@ -834,6 +838,9 @@ function collectEntries(ctx) {
             }
         } catch (e) {}
     }
+    // Les restes d'import posés DANS les chutiers de l'utilisateur (cf.
+    // collectStrayBins). Pas le passage après une Nest : il reste instantané.
+    if (!ctx.fast) collectStrayBins(ctx, entries);
     return entries;
 }
 
@@ -899,6 +906,84 @@ function isPluginBinName(ctx, nm) {
         }
     }
     return false;
+}
+
+// Les chutiers du plugin qu'un import a déposés DANS les chutiers de
+// l'utilisateur. Relevé sur « Client B 6 » le 07/10 : chaque jour, les
+// séquences d'un projet « Sources … » sont importées ; Premiere recrée alors,
+// sous « 02 rushes & nests (jours)/Sources 10-4 », les chutiers de ce projet
+// (« video », « nested sequence », « music & sound effect », « screenshots »,
+// « 00 offline »…). Le bouton n'ouvrait jamais les chutiers de
+// l'utilisateur : 47 chutiers en double, 132 éléments éparpillés, et le
+// rapport disait « tout est déjà rangé ».
+//   · Un chutier qui porte un nom du plugin (une catégorie, ou un ancien nom
+//     si « Merge old bins » est allumé), à n'importe quelle profondeur sous un
+//     chutier de l'utilisateur, est un reste d'import : tout ce qu'il
+//     contient est rangé comme un nouvel import, et il disparaît une fois vide.
+//   · Le reste ne bouge pas : ni « Rushes 10-1 », ni les séquences posées
+//     directement dans « Sources 10-4 ».
+//   · Un chutier de l'utilisateur qui ne menait QU'À de tels restes, et que ce
+//     passage laisse vide, part aussi (cascade de deleteEmptyKnownBins). Vide
+//     avant le passage, ou rempli d'autre chose : il reste.
+// Jamais un chutier « Ignorer » (ni ce qu'il contient), jamais le temporaire
+// de rafraîchissement. Les sous-chutiers des chutiers du plugin sont l'affaire
+// de collectInsideOwned.
+function collectStrayBins(ctx, entries) {
+    var top = getChildren(ctx.root);
+    for (var i = 0; i < top.length; i++) {
+        try {
+            var b = top[i];
+            if (b.type !== 2) continue;
+            if (ctx.owned.ids[idKey(b.nodeId)]) continue;
+            var nm = String(b.name);
+            if (nm === REFRESH_BIN_NAME || isNameIgnored(nm, ctx.ignored)) continue;
+            walkUserBin(ctx, b, [nm], null, entries);
+        } catch (e) {}
+    }
+}
+
+// Descend dans un chutier de l'utilisateur ; renvoie true s'il mène à au
+// moins un reste d'import. Une seule lecture de `children` par chutier.
+function walkUserBin(ctx, bin, parts, parentBin, entries) {
+    if (parts.length > 20) return false;
+    var ch = getChildren(bin), found = false;
+    for (var i = 0; i < ch.length; i++) {
+        try {
+            if (ch[i].type !== 2) continue;
+            var nm = String(ch[i].name);
+            if (nm === REFRESH_BIN_NAME || isNameIgnored(nm, ctx.ignored)) continue;
+            var here = parts.concat([nm]);
+            if (!isPluginBinName(ctx, nm)) {
+                if (walkUserBin(ctx, ch[i], here, bin, entries)) found = true;
+                continue;
+            }
+            found = true;
+            var k = idKey(ch[i].nodeId);
+            ownForCleanup(ctx, ch[i], here, bin);
+            ctx.binDepth[k] = here.length;
+            if (ctx.leftoverBins.length < 50) {
+                ctx.leftoverBins.push(here.join("/"));
+                ctx.leftoverTop[k] = here.join("/");
+            }
+            var start = entries.length, below = [];
+            collectDirect(ch[i], entries, here, "", false, ctx, below);
+            for (var e = start; e < entries.length; e++) {
+                entries[e].inSub = true;
+                entries[e].topCat = "";
+                entries[e].leftover = true;
+            }
+            if (below.length) collectInsideOwned(ctx, below, here, "", entries, true, ch[i]);
+        } catch (eB) {}
+    }
+    // Connu du ménage, pour partir s'il se retrouve vide après le passage.
+    if (found) {
+        var bk = idKey(bin.nodeId);
+        ctx.binObj[bk] = bin;
+        ctx.binDepth[bk] = parts.length;
+        ctx.userShell[bk] = parts.join("/");
+        if (parentBin) ctx.owned.parent[bk] = parentBin;
+    }
+    return found;
 }
 
 // Un reste d'import dans nos chutiers : à nous pour le ménage — supprimé
@@ -1509,7 +1594,7 @@ function deleteEmptyKnownBins(ctx) {
     var list = [];
     for (var k in ctx.binObj) {
         if (!ctx.binObj.hasOwnProperty(k)) continue;
-        list.push({ k: k, bin: ctx.binObj[k], depth: (ctx.owned.path[k] || [1]).length });
+        list.push({ k: k, bin: ctx.binObj[k], depth: ctx.binDepth[k] || (ctx.owned.path[k] || [1]).length });
     }
     list.sort(function (a, b) { return b.depth - a.depth; });
     var cascade = {};
@@ -1523,6 +1608,7 @@ function deleteEmptyKnownBins(ctx) {
             var parent = ctx.owned.parent[list[i].k];
             b.deleteBin();
             if (ctx.leftoverTop[list[i].k]) ctx.leftoverDeleted.push(ctx.leftoverTop[list[i].k]);
+            if (ctx.userShell[list[i].k]) ctx.userShellDeleted.push(ctx.userShell[list[i].k]);
             // Un sous-chutier créé ET resté vide dans ce passage ne rend pas
             // son parent supprimable : le parent était peut-être vide AVANT.
             if (parent && !ctx.created[list[i].k]) cascade[idKey(parent.nodeId)] = true;

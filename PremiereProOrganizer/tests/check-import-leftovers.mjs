@@ -13,13 +13,16 @@
  *
  * The fixture is that project as saved at 19:07 (fixtures/real-import-
  * leftovers.json): every bin and sequence, who nests what, and the media the
- * plugin looks at. The rule pinned here (2.5.1):
- *   · a sub-bin of a plugin bin that carries a plugin bin name (a category or
- *     an old name) is an import leftover: its content is filed like a new
- *     import, and it goes once empty;
+ * plugin looks at. The rules pinned here:
+ *   · (2.5.1) a sub-bin of a plugin bin that carries a plugin bin name (a
+ *     category or an old name) is an import leftover: its content is filed
+ *     like a new import, and it goes once empty;
  *   · a sub-bin the user made inside "01 sequence" keeps its edits;
- *   · the user's own bins ("02 rushes & nests (jours)", "Sources …") are never
- *     entered;
+ *   · (2.6.1) the same holds for a bin with a plugin name INSIDE the user's own
+ *     bins ("02 rushes & nests (jours)/Sources 9-29 …/08 nested sequence"):
+ *     until then those were never entered, and on 2026-10-07 the same project
+ *     had 47 of them, 136 items scattered. Everything else in the user's bins
+ *     stays where it is; a user bin goes only if this run left it empty;
  *   · the automatic pass after a Nest still opens no sub-bin.
  */
 import fs from 'node:fs';
@@ -39,6 +42,14 @@ const check = (name, ok, detail = '') => {
 
 const LEFTOVERS = ['01 sequence/nested sequence', '01 sequence/video', '01 sequence/music & sound effect'];
 const USER_TOPS = ['02 rushes & nests (jours)', 'Sources 9-30 CB2new_ClientB2_1'];
+// A bin of the plugin, by name: the numbered categories and the old names
+// (the replay payload turns "Merge old bins" on, as the owner has it).
+const PLUGIN_NAMES = ['00 offline', '01 sequence', '02 video', '03 b-roll', '04 music & sound effect', '05 images',
+  '06 animations & templates', '07 styles', '08 nested sequence', '09 other', '10 exports',
+  'sequence', 'nested sequence', 'video', 'music & sound effect', '05 screenshots', 'screenshots', 'styles', 'other'];
+const isPluginName = (seg) => PLUGIN_NAMES.includes(String(seg).trim().toLowerCase());
+// Inside one of the user's bins, below a bin with a plugin name?
+const inStray = (p) => USER_TOPS.includes(top(p)) && p.split('/').slice(1).some(isPluginName);
 const fresh = () => {
   const desc = JSON.parse(JSON.stringify(fx));
   const h = buildHost(desc, jsx);
@@ -72,8 +83,12 @@ console.log('\n1) One click on Organize');
   const after = where();
   check('Preview predicted the run', pv.total === rep.total && JSON.stringify(pv.counts) === JSON.stringify(rep.counts),
         `${pv.total} / ${rep.total} ${JSON.stringify(rep.counts)}`);
-  check('10 items filed: 2 nests, 5 rushes, 3 sounds', rep.total === 10 && rep.counts.nested === 2 &&
-        rep.counts.video === 5 && rep.counts.audio === 3 && rep.failed === 0, JSON.stringify(rep.counts));
+  const strayItems = desc.items.filter((it) => inStray(before[it.uid]));
+  check('the 10 from "01 sequence" plus the 21 in plugin bins inside the user\'s bins are filed',
+        rep.total === 10 + strayItems.length && strayItems.length === 21 && rep.counts.video === 5 &&
+        rep.counts.audio === 3 && rep.failed === 0, `${rep.total} = 10 + ${strayItems.length} ${JSON.stringify(rep.counts)}`);
+  check('every one of those 21 left its bin', strayItems.every((it) => after[it.uid] !== before[it.uid]),
+        strayItems.filter((it) => after[it.uid] === before[it.uid]).map((it) => it.name).join(', ') || 'all moved');
 
   const { isNest } = expectedBins(desc);
   const outside = desc.items.filter((it) => it.kind === 'sequence' && !USER_TOPS.includes(top(after[it.uid])));
@@ -85,20 +100,27 @@ console.log('\n1) One click on Organize');
         editsWrong.map((it) => `${it.name} @ ${after[it.uid]}`).join(', ') || 'none');
   check('01 sequence holds sequences only', desc.items.every((it) => top(after[it.uid]) !== '01 sequence' || it.kind === 'sequence'));
   check('the three leftover bins are gone', LEFTOVERS.every((b) => !bins().has(b)), [...bins()].filter((b) => b.startsWith('01 sequence/')).join(', '));
-  check('…and named in the report', JSON.stringify((rep.leftoverBins || []).slice().sort()) === JSON.stringify(LEFTOVERS.slice().sort()), JSON.stringify(rep.leftoverBins));
+  const reported = rep.leftoverBins || [];
+  check('…and named in the report, with the plugin bins found in the user\'s bins',
+        LEFTOVERS.every((b) => reported.includes(b)) &&
+        reported.every((b) => LEFTOVERS.includes(b) || (USER_TOPS.includes(top(b)) && isPluginName(b.split('/').pop()))),
+        JSON.stringify(reported));
   check('the edit in the user\'s sub-bin "01 sequence/9-29 V1 (…)" stays there',
         desc.items.some((it) => after[it.uid].startsWith('01 sequence/9-29 V1') && it.kind === 'sequence'));
-  const userMoved = desc.items.filter((it) => USER_TOPS.includes(top(before[it.uid])) && after[it.uid] !== before[it.uid]);
-  check('not one item left the user\'s bins (lots "Sources …", "02 rushes & nests (jours)")', userMoved.length === 0, String(userMoved.length));
+  const userMoved = desc.items.filter((it) => USER_TOPS.includes(top(before[it.uid])) && !inStray(before[it.uid]) && after[it.uid] !== before[it.uid]);
+  check('nothing else left the user\'s bins (their rushes, the edits sitting in "Sources …")', userMoved.length === 0,
+        userMoved.map((it) => `${it.name} @ ${before[it.uid]}`).join(', ') || `${desc.items.filter((it) => USER_TOPS.includes(top(before[it.uid])) && !inStray(before[it.uid])).length} stayed`);
   const userBinsGone = [...binsBefore].filter((b) => USER_TOPS.includes(top(b)) && !bins().has(b));
-  check('not one of the user\'s bins was deleted', userBinsGone.length === 0, userBinsGone.join(', ') || `${[...binsBefore].filter((b) => USER_TOPS.includes(top(b))).length} kept`);
+  const allowed = (b) => b.split('/').slice(1).some(isPluginName) || (rep.emptiedBins || []).includes(b);
+  check('only plugin bins, and user bins this run left empty, were deleted', userBinsGone.every(allowed),
+        userBinsGone.filter((b) => !allowed(b)).join(', ') || `${userBinsGone.length} gone, all allowed`);
 
   const again = JSON.parse(h.O.resetAndOrganize(payload('incremental')));
   check('a second click moves nothing', again.total === 0 && (again.leftoverBins || []).length === 0, `${again.total} moved`);
 
   const undo = JSON.parse(h.O.undoOrganize(JSON.stringify(rep.undo)));
   const back = where();
-  check('Undo puts the 10 back, leftover bins recreated', undo.restored === 10 &&
+  check('Undo puts all of them back, leftover bins recreated', undo.restored === rep.total &&
         desc.items.every((it) => back[it.uid] === before[it.uid]), JSON.stringify(undo));
 }
 
@@ -117,5 +139,5 @@ console.log('\n2) The automatic pass after a Nest opens no sub-bin');
   check('cheap: under 3 000 calls to Premiere', h.calls() < 3000, `${h.calls()} calls`);
 }
 
-console.log(`\n${failed ? failed + ' failure(s)' : 'what an import slips into the plugin\'s bins is filed'}\n`);
+console.log(`\n${failed ? failed + ' failure(s)' : 'what an import slips into the plugin\'s bins, or the user\'s, is filed'}\n`);
 process.exit(failed ? 1 : 0);
