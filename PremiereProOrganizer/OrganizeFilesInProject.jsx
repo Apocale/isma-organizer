@@ -118,7 +118,7 @@ if (typeof JSON !== "object" || JSON === null) { JSON = {}; }
 
 var IsmaOrganizer = (function () {
 
-var VERSION = "2.6.1";
+var VERSION = "2.7.0";
 
 // Étiquettes Premiere Pro : 0 Violet, 1 Iris, 2 Caribbean, 3 Lavender,
 // 4 Cerulean, 5 Forest, 6 Rose, 7 Mango, 8 Purple, 9 Blue, 10 Teal,

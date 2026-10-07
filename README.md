@@ -4,7 +4,7 @@ A free panel for **Adobe Premiere Pro**. One click sorts your project into
 numbered bins, and the B-roll you saved from Pinterest is one drag away from
 your timeline.
 
-<img src="docs/screenshot-organize.jpg" width="400" alt="The Organize tab after a Preview: 20 items would move, by category">
+<img src="docs/screenshot-organize.jpg" width="400" alt="The Organize tab in its Windows 7 look, after a Preview: 20 items would move, by category">
 
 *Preview on a demo project: nothing moves until you click Apply.*
 

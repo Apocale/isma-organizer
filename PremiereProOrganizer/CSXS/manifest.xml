@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<ExtensionManifest xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ExtensionBundleId="com.OrganizeFilesInProject" ExtensionBundleName="OrganizeFilesInProject" ExtensionBundleVersion="2.6.1" Version="7.0">
+<ExtensionManifest xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ExtensionBundleId="com.OrganizeFilesInProject" ExtensionBundleName="OrganizeFilesInProject" ExtensionBundleVersion="2.7.0" Version="7.0">
   <ExtensionList>
-    <Extension Id="com.OrganizeFilesInProject.panel" Version="2.6.1" />
+    <Extension Id="com.OrganizeFilesInProject.panel" Version="2.7.0" />
   </ExtensionList>
   <ExecutionEnvironment>
     <HostList>
