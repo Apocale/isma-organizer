@@ -32,10 +32,12 @@ if [ ! -f "$SRC/CSXS/manifest.xml" ]; then
   finish 1
 fi
 
-# Premiere reads its panels when it starts. Only the app itself counts: helper
-# processes (crash reporter, Dynamic Link) stay after it quits and also carry
-# "Adobe Premiere Pro" in their path.
-while pgrep -f "/Contents/MacOS/Adobe Premiere Pro" >/dev/null 2>&1; do
+# Premiere reads its panels when it starts. Only the app itself counts, by the
+# path of its executable: helpers (crash reporter, Dynamic Link, CEP) live in
+# the same folder, and AdobeIPCBroker can outlive Premiere with Premiere's path
+# among its ARGUMENTS, so "pgrep -f" said Premiere was open after it quit.
+premiere_open() { ps -axo comm= | grep -qE '/Contents/MacOS/Adobe Premiere Pro[^/]*$'; }
+while premiere_open; do
   say "[!] Premiere Pro is open. Quit it (Premiere Pro > Quit), then press Enter." \
       "[!] Premiere Pro est ouvert. Quitte-le, puis appuie sur Entrée."
   say "    To install anyway, type i then Enter, and restart Premiere afterwards." \
