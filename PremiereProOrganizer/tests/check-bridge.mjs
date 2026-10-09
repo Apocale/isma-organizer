@@ -19,6 +19,7 @@ const html = fs.readFileSync(ROOT + 'index.html', 'utf8');
 const script = /<script type="text\/javascript">([\s\S]*?)<\/script>/.exec(html)[1];
 
 const DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'pqd-bridge-'));
+const HOME = fs.mkdtempSync(path.join(os.tmpdir(), 'pqd-home-'));
 
 let failed = 0;
 const check = (name, ok, detail = '') => {
@@ -79,7 +80,9 @@ const sandbox = {
   clearTimeout: () => {},
   setInterval: () => 0, // ticks are driven by hand below
   clearInterval: () => {},
-  require: (m) => (m === 'fs' ? fs : m === 'os' ? os : null),
+  // A home folder of its own: with the real one, the panel restored the
+  // owner's settings file and watched his real Downloads/Pinterest.
+  require: (m) => (m === 'fs' ? fs : m === 'os' ? { homedir: () => HOME, platform: () => process.platform } : null),
   localStorage: {
     getItem: (k) => (k in store ? store[k] : null),
     setItem: (k, v) => { store[k] = String(v); },
@@ -215,6 +218,22 @@ tick();
 tick();
 check('and it resumes once the run is over', jsxCalls.length === before + 1);
 
+console.log('\n6) The old Downloads/Pinterest is still watched (2.7.2)');
+// Since 2.7.2 the panel saves into its own folder. Someone who used
+// Downloads/Pinterest keeps it (settings migration → 'broll-old-dir'): what a
+// browser extension still drops there is imported too.
+const OLD = fs.mkdtempSync(path.join(os.tmpdir(), 'pqd-old-'));
+store['broll-old-dir'] = OLD;
+fs.writeFileSync(path.join(OLD, 'from-chrome_771874823639535808.mp4'), Buffer.alloc(3000, 1));
+const beforeOld = jsxCalls.length;
+tick();
+tick();
+const fromOld = jsxCalls.length > beforeOld ? JSON.parse(JSON.parse(/importWatched\((.*)\)$/s.exec(jsxCalls[jsxCalls.length - 1])[1])) : { paths: [] };
+check('a file landing in the old folder is imported', fromOld.paths.length === 1 && fromOld.paths[0] === path.join(OLD, 'from-chrome_771874823639535808.mp4'), fromOld.paths.join(', '));
+delete store['broll-old-dir'];
+fs.rmSync(OLD, { recursive: true, force: true });
+
 fs.rmSync(DIR, { recursive: true, force: true });
+fs.rmSync(HOME, { recursive: true, force: true });
 console.log(`\n${failed ? failed + ' failure(s)' : 'the bridge behaves'}\n`);
 process.exit(failed ? 1 : 0);

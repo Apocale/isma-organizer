@@ -28,11 +28,11 @@ your timeline.
 
 **B-roll tab**
 
-- Shows the videos and images in your B-roll folder (`Downloads/Pinterest` by
-  default), newest first. Click one to see it large, drag it onto the timeline
-  or into a bin.
+- Shows the videos and images you saved, newest first. Click one to see it
+  large, drag it onto the timeline or into a bin.
 - **Pinterest**: search Pinterest videos from the panel and save one with a
-  click.
+  click. Videos go to the panel's own folder, out of your Downloads; the
+  **Folder** button opens it.
 
 ## Install
 
@@ -105,6 +105,7 @@ searches and downloads you ask for, which go to Pinterest.
 |---|---|---|
 | Settings | `~/Library/Application Support/IsmaOrganizer/` | `%APPDATA%\IsmaOrganizer\` |
 | Log of the last runs | `~/Library/Logs/IsmaOrganizer/` | `%LOCALAPPDATA%\IsmaOrganizer\Logs\` |
+| Videos you save from Pinterest | `~/Library/Application Support/IsmaOrganizer/B-roll/` | `%LOCALAPPDATA%\IsmaOrganizer\B-roll\` |
 | B-roll thumbnails | `~/Library/Caches/PinterestBroll/` | `%LOCALAPPDATA%\IsmaOrganizer\BrollThumbs\` |
 
 On a Mac, the option **Red Finder tag** (off by default) adds a red tag to the
@@ -130,6 +131,9 @@ Quit Premiere Pro and delete the `PremiereProOrganizer` folder:
 
 - Mac: `~/Library/Application Support/Adobe/CEP/extensions/PremiereProOrganizer`
 - Windows: `%APPDATA%\Adobe\CEP\extensions\PremiereProOrganizer`
+
+The videos you saved stay in the folder listed above ("Videos you save from
+Pinterest"). Delete it too only if no project uses them any more.
 
 ## For developers
 

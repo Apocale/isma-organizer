@@ -27,7 +27,7 @@ const check = (name, ok, detail = '') => {
 };
 
 // ------------------------------------------------------------------ the rig
-function rig({ store = {}, seqWatch = true, journalDir = true, sig = {} } = {}) {
+function rig({ store = {}, seqWatch = true, journalDir = true, sig = {}, platform } = {}) {
   const HOME = fs.mkdtempSync(path.join(os.tmpdir(), 'org-auto-'));
   const JOURNAL = path.join(HOME, 'Documents/Journal premire/data');
   if (journalDir) fs.mkdirSync(JOURNAL, { recursive: true });
@@ -59,7 +59,8 @@ function rig({ store = {}, seqWatch = true, journalDir = true, sig = {} } = {}) 
 
   // An existing user (settings saved by an earlier version). Switched off =
   // stored off, as savePrefs() leaves it when the user flips the switch.
-  const localStore = Object.assign({ prefsVersion: '2' }, seqWatch === false ? { 'f-auto-sequences': '0' } : {}, store);
+  const localStore = Object.assign({ prefsVersion: '2' }, seqWatch === false ? { 'f-auto-sequences': '0' } : {}, typeof store === 'function' ? store(HOME) : store);
+  for (const k of Object.keys(localStore)) if (localStore[k] === null) delete localStore[k];
   // `sig` is what Premiere answers from the very first poll — the panel polls
   // once as soon as it loads, so the starting state must be set before that.
   const host = { sig: Object.assign({ ok: true, path: '/P/Client B 5.prproj', name: 'Client B 5', rootCount: 10, seqCount: 244, rootSeqs: 0 }, sig),
@@ -69,7 +70,7 @@ function rig({ store = {}, seqWatch = true, journalDir = true, sig = {} } = {}) 
     console, JSON, Object, Math, RegExp, String, Number, Boolean, Array, Error, parseInt, parseFloat, isNaN,
     Date: FakeDate,
     setTimeout: () => 0, clearTimeout: () => {}, setInterval: () => 0, clearInterval: () => {},
-    require: (m) => (m === 'fs' ? fs : m === 'os' ? { homedir: () => HOME } : null),
+    require: (m) => (m === 'fs' ? fs : m === 'os' ? Object.assign({ homedir: () => HOME }, platform ? { platform: () => platform } : {}) : null),
     localStorage: {
       getItem: (k) => (k in localStore ? localStore[k] : null),
       setItem: (k, v) => { localStore[k] = String(v); },
@@ -99,7 +100,7 @@ function rig({ store = {}, seqWatch = true, journalDir = true, sig = {} } = {}) 
   new vm.Script(script).runInContext(sandbox);
 
   return {
-    sandbox, el, host, HOME,
+    sandbox, el, host, HOME, store: localStore,
     journalFile: path.join(JOURNAL, 'plugin-isma-organizer.jsonl'),
     advance(ms) { now += ms; },
     tick() { sandbox.autoTick(); },
@@ -372,6 +373,37 @@ console.log('\n13) The diagnostic\'s journal line keeps "scan" a mode (N2)');
   const L = r.journal()[0] || { detail: {} };
   check('detail.scan is a string', typeof L.detail.scan === 'string' || L.detail.scan === undefined, JSON.stringify(L.detail.scan));
   r.cleanup();
+}
+
+console.log('\n14) The B-roll folder leaves Downloads for the panel\'s own folder (2.7.2)');
+{
+  // Isma on 2026-10-09: "dans le dossier de l'app". The panel used to fill the
+  // setting with Downloads/Pinterest, so every existing user has it stored.
+  const PIN = (h) => path.join(h, 'Downloads', 'Pinterest');
+  const APP = (h) => path.join(h, 'Library', 'Application Support', 'IsmaOrganizer', 'B-roll');
+
+  const r1 = rig({ platform: 'darwin', store: (h) => ({ prefsVersion: '3', 'f-watch-dir': PIN(h), 'f-seq-patterns': 'Hook' }) });
+  check('existing user: new videos go to the panel\'s own folder', r1.el('f-watch-dir').value === APP(r1.HOME), r1.el('f-watch-dir').value);
+  check('…the old Downloads/Pinterest is remembered, to stay listed', r1.store['broll-old-dir'] === PIN(r1.HOME), r1.store['broll-old-dir']);
+  check('…and the other settings are kept', r1.el('f-seq-patterns').value === 'Hook' && r1.store.prefsVersion === '4', r1.store.prefsVersion);
+  r1.cleanup();
+
+  const r2 = rig({ platform: 'darwin', store: () => ({ prefsVersion: '3', 'f-watch-dir': '/Volumes/SSD/Broll' }) });
+  check('a folder the user chose stays as it is', r2.el('f-watch-dir').value === '/Volumes/SSD/Broll' && !('broll-old-dir' in r2.store), r2.el('f-watch-dir').value);
+  r2.cleanup();
+
+  const r3 = rig({ platform: 'darwin', store: () => ({ prefsVersion: null }) });
+  check('a new user starts in the panel\'s own folder', r3.el('f-watch-dir').value === APP(r3.HOME), r3.el('f-watch-dir').value);
+  check('…and Downloads is never read for them (no old folder)', !('broll-old-dir' in r3.store), String(r3.store['broll-old-dir']));
+  r3.cleanup();
+
+  const r4 = rig({ platform: 'darwin', store: (h) => ({ prefsVersion: '4', 'f-watch-dir': APP(h), 'broll-old-dir': PIN(h), 'f-seq-patterns': 'Hook', 'f-video': '02 rushes' }) });
+  check('the next launch migrates nothing again: names and rules kept', r4.el('f-video').value === '02 rushes' && r4.el('f-seq-patterns').value === 'Hook', r4.el('f-video').value);
+  r4.cleanup();
+
+  const r5 = rig({ platform: 'win32', store: (h) => ({ prefsVersion: '3', 'f-watch-dir': PIN(h) }) });
+  check('Windows: AppData\\Local\\IsmaOrganizer\\B-roll', /AppData[\\/]Local[\\/]IsmaOrganizer[\\/]B-roll$/.test(r5.el('f-watch-dir').value), r5.el('f-watch-dir').value);
+  r5.cleanup();
 }
 
 console.log(`\n${failed ? failed + ' failure(s)' : 'new sequences are filed mid-session, and every run is measured'}\n`);

@@ -28,8 +28,15 @@ inside `IsmaOrganizer`. **Never add a top-level function to either `.jsx`.**
 
 ## The two modes
 
-**My downloads** — the grid of the B-roll folder: setting *B-roll folder*,
-`Downloads/Pinterest` in the user's home folder when empty (`~` works). One click selects one tile and opens it large (sound, controls, ← → to
+**My downloads** — the grid of the B-roll folder: setting *B-roll folder*;
+when empty, the panel's own folder (2.7.2, asked 2026-10-09: "dans le dossier
+de l'app"): out of sight, outside the folders macOS asks permission for,
+local on Windows. The **Folder** button opens it. Until 2.7.1 the default was
+`Downloads/Pinterest`: the settings migration (prefsVersion 4) moves a
+setting still on that default and remembers the old folder in
+`broll-old-dir`, which stays listed and watched here and by Auto-import —
+its videos are never moved, projects use them where they are. A new user
+never gets `broll-old-dir`, so Downloads is never read for them. One click selects one tile and opens it large (sound, controls, ← → to
 browse, Esc to close). The tile and the large frame are both drag handles:
 drop on the timeline or in a bin. Premiere accepts exactly one format from a
 CEP panel, `com.adobe.cep.dnd.file.0` = absolute path. There are no import
@@ -55,7 +62,7 @@ saved directly, no ffmpeg.
 
 | | Mac | Windows |
 |---|---|---|
-| B-roll folder when the setting is empty | `~/Downloads/Pinterest` | `%USERPROFILE%\Downloads\Pinterest` |
+| B-roll folder when the setting is empty (2.7.2) | `~/Library/Application Support/IsmaOrganizer/B-roll` | `%LOCALAPPDATA%\IsmaOrganizer\B-roll` |
 | Thumbnail cache | `~/Library/Caches/PinterestBroll` (same as before the merge) | `%LOCALAPPDATA%\IsmaOrganizer\BrollThumbs` |
 | ffmpeg looked for | `bin/` in the panel folder, `/opt/homebrew/bin`, `/usr/local/bin`, `/opt/local/bin`, `/usr/bin`, then the PATH | `bin\` in the panel folder, winget link, `C:\ffmpeg\bin`, Program Files, Chocolatey, Scoop, then the PATH (`;`) |
 | Without ffmpeg | "ffmpeg is needed … (brew install ffmpeg)" | "… (winget install -e --id Gyan.FFmpeg)" |

@@ -36,6 +36,12 @@ put('Images/moodboard_771874823639535803.jpg', 300_000);
 put('legacy-clip.mp4', 2_000_000);
 put('notes.txt', 100);
 fs.writeFileSync(DIR + '/Downloads/Pinterest/.DS_Store', 'x');
+// Since 2.7.2 the panel saves into its own folder; Downloads/Pinterest is the
+// folder of someone who used it before (the settings migration remembers it in
+// 'broll-old-dir'), still listed, never written to.
+const APP = DIR + '/Library/Application Support/IsmaOrganizer/B-roll';
+const store = { 'broll-old-dir': DIR + '/Downloads/Pinterest' };
+const opened = [];
 
 // ---- stubs -----------------------------------------------------------------
 
@@ -99,9 +105,9 @@ const sandbox = {
   require: (m) => (m === 'fs' ? Object.assign({}, fs, { watch: () => ({ close() {}, on() {} }) })
     : m === 'os' ? { homedir: () => DIR, platform: () => 'darwin' }
     : m === 'path' ? path
-    : m === 'child_process' ? { execFile: () => {} }
+    : m === 'child_process' ? { execFile: (cmd, args) => { opened.push([cmd].concat(args || [])); } }
     : null),
-  localStorage: { getItem: () => null, setItem() {}, removeItem() {} },
+  localStorage: { getItem: (k) => (k in store ? store[k] : null), setItem(k, v) { store[k] = String(v); }, removeItem(k) { delete store[k]; } },
   Image: function () { this.src = ''; },
   window: {},
   document: {
@@ -292,13 +298,13 @@ check('a new result says "save" and is not draggable', !cozy.classList.contains(
 check('the status counts results', /2<\/b> video/.test(el('status').innerHTML) && /1<\/b> saved/.test(el('status').innerHTML), el('status').innerHTML);
 
 cozy.fire('click');
-check('clicking saves into the downloads folder', fakeCalls.download.length === 1 && fakeCalls.download[0].dir === DIR + '/Downloads/Pinterest', JSON.stringify(fakeCalls.download));
+check('clicking saves into the panel\'s own folder, not Downloads', fakeCalls.download.length === 1 && fakeCalls.download[0].dir === APP, JSON.stringify(fakeCalls.download));
 check('the tile is now saved and draggable', cozy.classList.contains('saved') && cozy.draggable === true, cozy.className);
 check('the status says to drag it', /drag/i.test(el('status').textContent), el('status').textContent);
 check('the file shows up in the local list too', grid.children.some((c) => /Cozy kitchen morning/.test(c.title || '')));
 const dtp = { data: {}, setData(k, v) { this.data[k] = v; }, setDragImage() {} };
 cozy._h.dragstart.call(cozy, { dataTransfer: dtp, preventDefault() {} });
-check('dragging the saved tile hands Premiere the local path', dtp.data['com.adobe.cep.dnd.file.0'] === DIR + '/Downloads/Pinterest/Cozy kitchen morning_771874823639535899.mp4', dtp.data['com.adobe.cep.dnd.file.0']);
+check('dragging the saved tile hands Premiere the local path', dtp.data['com.adobe.cep.dnd.file.0'] === APP + '/Cozy kitchen morning_771874823639535899.mp4', dtp.data['com.adobe.cep.dnd.file.0']);
 cozy._h.dragend.call(cozy, { dataTransfer: { dropEffect: 'copy' } });
 cozy.fire('click');
 check('clicking a saved tile opens it large instead of downloading again', fakeCalls.download.length === 1 && el('lightbox').hidden === false && el('lb-name').textContent === 'Cozy kitchen morning', el('lb-name').textContent);
@@ -314,6 +320,13 @@ check('no bookmark left → no further request', fakeCalls.search.length === 2);
 
 el('m-local').fire('click');
 check('back to the local list', grid.hidden === false && el('pgrid').hidden === true);
+
+console.log('\n9) The panel\'s own folder, and the Folder button (2.7.2)');
+check('the panel made its own folder', fs.existsSync(APP), APP);
+check('a video saved before in Downloads/Pinterest is still listed', grid.children.some((c) => /sunset-beach/.test(c.title || '')));
+check('nothing new was written to Downloads/Pinterest', !fs.existsSync(DIR + '/Downloads/Pinterest/Cozy kitchen morning_771874823639535899.mp4'));
+el('open-dir').fire('click');
+check('the Folder button shows that folder in the Finder', opened.length === 1 && opened[0][0] === 'open' && opened[0][1] === APP, JSON.stringify(opened));
 
 console.log('\n7) The host script actually holds together');
 
@@ -364,24 +377,28 @@ console.log('\n8) Any computer, not just this Mac (2.6.0)');
   const lift = (globals) => {
     const box = Object.assign({}, globals);
     vm.createContext(box);
-    new vm.Script('var TAG_PY;\n' + ['pjoin', 'platform', 'env', 'rootDir', 'fileUrl', 'thumbCacheBase', 'tagPython'].map(fnSrc).join('\n')).runInContext(box);
+    new vm.Script('var TAG_PY;\n' + ['pjoin', 'platform', 'env', 'appDir', 'oldDir', 'pkey', 'rootDirs', 'rootDir', 'fileUrl', 'thumbCacheBase', 'tagPython'].map(fnSrc).join('\n')).runInContext(box);
     return box;
   };
   const win = lift({ path: path.win32, os: { homedir: () => 'C:\\Users\\ana', platform: () => 'win32' },
+                     localStorage: { getItem: (k) => (k === 'broll-old-dir' ? 'C:\\Users\\ana\\Downloads\\Pinterest' : null) },
                      process: { platform: 'win32', env: { LOCALAPPDATA: 'C:\\Users\\ana\\AppData\\Local' } },
                      fs: { existsSync: () => true } });
-  check('Windows: downloads folder', win.rootDir() === 'C:\\Users\\ana\\Downloads\\Pinterest', win.rootDir());
+  check('Windows: the panel\'s own folder, in AppData\\Local', win.rootDir() === 'C:\\Users\\ana\\AppData\\Local\\IsmaOrganizer\\B-roll', win.rootDir());
   check('Windows: a file path becomes a file:/// URL the player can open',
         win.fileUrl('C:\\Users\\ana\\Downloads\\Pinterest\\a b.mp4') === 'file:///C:/Users/ana/Downloads/Pinterest/a%20b.mp4',
         win.fileUrl('C:\\Users\\ana\\Downloads\\Pinterest\\a b.mp4'));
   check('Windows: thumbnails cached in AppData\\Local', win.thumbCacheBase() === 'C:\\Users\\ana\\AppData\\Local\\IsmaOrganizer\\BrollThumbs', win.thumbCacheBase());
   check('Windows: no Finder tag attempted', win.tagPython() === '');
+  check('Windows, someone who used Downloads/Pinterest: both folders listed', win.rootDirs().length === 2 && win.rootDirs()[1] === 'C:\\Users\\ana\\Downloads\\Pinterest', JSON.stringify(win.rootDirs()));
 
   const freshMac = lift({ path: path.posix, os: { homedir: () => '/Users/lea', platform: () => 'darwin' },
                           process: { platform: 'darwin', env: {} }, fs: { existsSync: () => false } });
   check('a Mac without developer tools: no python call, so no "install developer tools" window', freshMac.tagPython() === '');
   check('Mac: thumbnails in the same cache folder as before', freshMac.thumbCacheBase() === '/Users/lea/Library/Caches/PinterestBroll', freshMac.thumbCacheBase());
   check('Mac: file URL', freshMac.fileUrl('/Users/lea/Downloads/Pinterest/a b.mp4') === 'file:///Users/lea/Downloads/Pinterest/a%20b.mp4');
+  check('Mac: the panel\'s own folder, out of sight in Library', freshMac.rootDir() === '/Users/lea/Library/Application Support/IsmaOrganizer/B-roll', freshMac.rootDir());
+  check('a new user: only that folder, Downloads is never read', freshMac.rootDirs().length === 1, JSON.stringify(freshMac.rootDirs()));
   const brewMac = lift({ path: path.posix, os: { homedir: () => '/Users/lea', platform: () => 'darwin' },
                          process: { platform: 'darwin', env: {} }, fs: { existsSync: (p) => p === '/opt/homebrew/bin/python3' } });
   check('a Mac with Homebrew python tags with it', brewMac.tagPython() === '/opt/homebrew/bin/python3', brewMac.tagPython());

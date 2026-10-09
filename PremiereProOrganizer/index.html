@@ -889,8 +889,8 @@
 
         <div class="field">
             <label for="f-watch-dir">B-roll folder</label>
-            <input type="text" id="f-watch-dir" placeholder="~/Downloads/Pinterest">
-            <span class="hint">Where the B-roll tab looks for your clips and saves Pinterest videos. Empty = <code>Downloads/Pinterest</code> in your home folder.</span>
+            <input type="text" id="f-watch-dir" placeholder="This panel's own folder">
+            <span class="hint">Where the B-roll tab saves Pinterest videos and looks for clips. Empty = this panel's own folder, out of sight (the <b>Folder</b> button of the B-roll tab opens it). Videos saved in <code>Downloads/Pinterest</code> before stay there and are still listed.</span>
         </div>
         <div class="field toggle">
             <label for="f-bridge-enabled">Auto-import</label>
@@ -976,6 +976,7 @@
           <button id="bf-image">Images</button>
         </div>
         <button class="ghost" id="refresh" title="Re-read the folder">&#8635;</button>
+        <button class="ghost" id="open-dir" title="Show the B-roll folder">Folder</button>
       </div>
 
       <div class="row" id="row-pin" hidden>
@@ -1172,7 +1173,7 @@
                 var file = prefsFile();
                 if (!file) return;
                 var fsm = require('fs'), data = { prefsVersion: localStorage.getItem('prefsVersion') };
-                TEXT_KEYS.concat(CHECK_KEYS).forEach(function(id) { data[id] = localStorage.getItem(id); });
+                TEXT_KEYS.concat(CHECK_KEYS, ['broll-old-dir']).forEach(function(id) { data[id] = localStorage.getItem(id); });
                 var dir = file.replace(/[\/\\][^\/\\]+$/, '');
                 if (!fsm.existsSync(dir)) fsm.mkdirSync(dir, { recursive: true });
                 fsm.writeFileSync(file, JSON.stringify(data, null, 1));
@@ -1829,7 +1830,7 @@
         try {
             restorePrefsFile();
             var pv = localStorage.getItem('prefsVersion');
-            if (pv !== '3') {
+            if (pv !== '3' && pv !== '4') {
                 var existing = (pv !== null);
                 if (pv !== '2') TEXT_KEYS.forEach(function(id) { localStorage.removeItem(id); });
                 if (existing) {
@@ -1839,6 +1840,17 @@
                     localStorage.setItem('seen-intro', '1');
                 }
                 localStorage.setItem('prefsVersion', '3');
+            }
+            //  · 4 (2.7.2): the B-roll folder leaves Downloads for the panel's own
+            //    folder. A setting still on the old default follows it; the old
+            //    folder stays listed and watched ('broll-old-dir'), nothing moves.
+            if (localStorage.getItem('prefsVersion') === '3') {
+                var oldDefault = oldDefaultWatchDir(), wd = localStorage.getItem('f-watch-dir');
+                if (wd !== null && oldDefault && (wd === '' || dirKey(wd) === dirKey(oldDefault))) {
+                    localStorage.setItem('f-watch-dir', '');
+                    localStorage.setItem('broll-old-dir', oldDefault);
+                }
+                localStorage.setItem('prefsVersion', '4');
             }
         } catch (e) {}
 
@@ -2378,8 +2390,56 @@
             try { return checked('f-bridge-enabled'); } catch (e) { return false; }
         }
 
+        // The panel's own folder for the videos it saves (asked 2026-10-09:
+        // "dans le dossier de l'app", no longer Downloads). Out of sight, outside
+        // the folders macOS asks permission for, local (not roaming) on Windows.
+        // The B-roll tab computes the same path (appDir()).
+        // The settings migration runs before nodeOs is set further down: read
+        // the module here, at the time of the call.
+        function osModule() {
+            if (nodeOs) return nodeOs;
+            try { return require('os'); } catch (e) { return null; }
+        }
         function defaultWatchDir() {
-            return nodeOs ? joinPath(nodeOs.homedir(), 'Downloads', 'Pinterest') : '';
+            var osm = osModule();
+            if (!osm) return '';
+            var home = osm.homedir(), plat = '';
+            try { plat = osm.platform ? osm.platform() : process.platform; } catch (e) {}
+            if (plat === 'win32') {
+                var local = (typeof process !== 'undefined' && process.env && process.env.LOCALAPPDATA) || joinPath(home, 'AppData', 'Local');
+                return joinPath(local, 'IsmaOrganizer', 'B-roll');
+            }
+            if (plat === 'darwin') return joinPath(home, 'Library', 'Application Support', 'IsmaOrganizer', 'B-roll');
+            return joinPath(home, '.local', 'share', 'IsmaOrganizer', 'B-roll');
+        }
+
+        // Before 2.7.2 the default was Downloads/Pinterest. Its videos are never
+        // moved (projects use them where they are): the settings migration
+        // remembers it in 'broll-old-dir', and both tabs keep reading it.
+        function oldDefaultWatchDir() {
+            var osm = osModule();
+            return osm ? joinPath(osm.homedir(), 'Downloads', 'Pinterest') : '';
+        }
+        function dirKey(p) {
+            var s = String(p || '').replace(/^\s+|\s+$/g, '');
+            var osm = osModule();
+            if (s.charAt(0) === '~' && osm) s = joinPath(osm.homedir(), s.substring(1).replace(/^[\/\\]+/, ''));
+            return s.replace(/\\/g, '/').replace(/\/+$/, '').toLowerCase();
+        }
+        function oldBrollDir() {
+            try { return localStorage.getItem('broll-old-dir') || ''; } catch (e) { return ''; }
+        }
+        // The B-roll folder first, then the old one if there is one.
+        function watchDirs() {
+            var main = watchDir(), old = oldBrollDir();
+            return (old && dirKey(old) !== dirKey(main)) ? [main, old] : [main];
+        }
+        // Our own folder may not exist yet (nothing saved so far): make it, so
+        // Auto-import does not report it missing. Never a folder the user typed.
+        function ensureDefaultDir() {
+            var dir = watchDir();
+            if (!nodeFs || dirKey(dir) !== dirKey(defaultWatchDir())) return;
+            try { if (!nodeFs.existsSync(dir)) nodeFs.mkdirSync(dir, { recursive: true }); } catch (e) {}
         }
 
         function watchDir() {
@@ -2441,9 +2501,20 @@
             return out;
         }
 
+        /** Importable files in the B-roll folder and the old one, or null if neither is readable. */
+        function scanWatchDirs() {
+            var all = null, dirs = watchDirs();
+            for (var d = 0; d < dirs.length; d++) {
+                var found = scanWatchDir(dirs[d]);
+                if (found) all = (all || []).concat(found);
+            }
+            return all;
+        }
+
         /** On switch-on: everything already there counts as seen. */
         function baselineWatchDir() {
-            var files = scanWatchDir(watchDir());
+            ensureDefaultDir();
+            var files = scanWatchDirs();
             if (files === null) return -1;
             for (var i = 0; i < files.length; i++) bridge.seen[files[i]] = 1;
             saveBridgeSeen();
@@ -2548,7 +2619,7 @@
             if (typeof isRunning !== 'undefined' && isRunning) return;
 
             var dir = watchDir();
-            var files = scanWatchDir(dir);
+            var files = scanWatchDirs();
             if (files === null) {
                 setBridgeStatus('folder not found: ' + dir, 'warn');
                 return;
@@ -2678,8 +2749,28 @@
   // and dragged — so a click now means "this one", and nothing else.
   var state = { files: [], inProject: {}, selected: null, filter: 'all', query: '', unreadable: null };
 
+  // The panel's own folder (asked 2026-10-09: "dans le dossier de l'app"):
+  // out of sight, outside the folders macOS asks permission for, local on
+  // Windows. Same path as defaultWatchDir() in the Organize script.
+  function appDir() {
+    var home = os ? os.homedir() : '', plat = platform();
+    if (plat === 'darwin') return pjoin(home, 'Library', 'Application Support', 'IsmaOrganizer', 'B-roll');
+    if (plat === 'win32') return pjoin(env('LOCALAPPDATA') || pjoin(home, 'AppData', 'Local'), 'IsmaOrganizer', 'B-roll');
+    return pjoin(home, '.local', 'share', 'IsmaOrganizer', 'B-roll');
+  }
+  // Where videos went before 2.7.2 (Downloads/Pinterest), set by the settings
+  // migration only for someone who had it. Listed and watched, never moved:
+  // projects use those files where they are.
+  function oldDir() {
+    try { return localStorage.getItem('broll-old-dir') || ''; } catch (e) { return ''; }
+  }
+  function rootDirs() {
+    var r = rootDir(), o = oldDir();
+    return (o && pkey(o).replace(/\/+$/, '') !== pkey(r).replace(/\/+$/, '')) ? [r, o] : [r];
+  }
+
   // The folder is a setting of the panel ("B-roll folder", shared with
-  // Auto-import). Empty → Downloads/Pinterest in the home folder.
+  // Auto-import). Empty → the panel's own folder (appDir).
   function rootDir() {
     var raw = '';
     try { var inp = document.getElementById('f-watch-dir'); raw = inp ? String(inp.value || '').replace(/^\s+|\s+$/g, '') : ''; } catch (e) {}
@@ -2688,7 +2779,7 @@
       var trimmed = raw.replace(/[\/\\]+$/, '');
       return /^[A-Za-z]:$/.test(trimmed) ? trimmed + '\\' : (trimmed || raw);
     }
-    return pjoin(os ? os.homedir() : '', 'Downloads', 'Pinterest');
+    return appDir();
   }
 
   // Same key as the host's pathKey(): forward slashes, lower case, trimmed —
@@ -2732,7 +2823,7 @@
 
   function scan(force) {
     if (!fs) { setStatus('Node unavailable', true); return 0; }
-    var root = rootDir(), out = [], unreadable = 0;
+    var root = rootDir(), dirs = rootDirs(), out = [], unreadable = 0;
 
     function walk(dir) {
       var entries;
@@ -2740,7 +2831,7 @@
       catch (e) {
         // No folder yet (nothing downloaded so far) is "No b-roll yet", not a
         // macOS refusal — the two used to get the same alarming message.
-        if (dir === root && e && e.code === 'ENOENT') return;
+        if (dirs.indexOf(dir) !== -1 && e && e.code === 'ENOENT') return;
         unreadable++;
         return;
       }
@@ -2767,7 +2858,7 @@
       }
     }
 
-    walk(root);
+    for (var di = 0; di < dirs.length; di++) walk(dirs[di]);
     // Newest first: the clip you want is nearly always the one you just saved.
     out.sort(function (a, b) { return b.mtime - a.mtime; });
     state.files = out;
@@ -3931,11 +4022,36 @@
   function startBroll() {
     if (started) return;
     started = true;
+    ensureAppDir();
     scan(true);
     refreshProject();
     setTimeout(pruneCache, 10000);
     watchFolder();
   }
+  // Never a folder the user typed: one on an unplugged drive would be made
+  // on the internal disk instead.
+  function ensureAppDir() {
+    var dir = rootDir();
+    if (!fs || pkey(dir) !== pkey(appDir())) return;
+    try { if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true }); } catch (e) {}
+  }
+
+  // The folder is out of sight: a button shows it in the Finder / Explorer.
+  var openDirBtn = el('open-dir');
+  if (openDirBtn) {
+    openDirBtn.title = platform() === 'win32' ? 'Show the B-roll folder in Explorer'
+                     : (platform() === 'darwin' ? 'Show the B-roll folder in the Finder' : 'Open the B-roll folder');
+    openDirBtn.addEventListener('click', function () {
+      ensureAppDir();
+      var dir = rootDir(), cp = null;
+      try { cp = require('child_process'); } catch (e) {}
+      if (!cp) { setStatus('Cannot open ' + dir, true); return; }
+      var cmd = platform() === 'win32' ? 'explorer.exe' : (platform() === 'darwin' ? 'open' : 'xdg-open');
+      // explorer.exe answers 1 even when it opened the folder: no error check.
+      try { cp.execFile(cmd, [dir], function () {}); } catch (e) { setStatus('Cannot open ' + dir, true); }
+    });
+  }
+
   document.addEventListener('isma-tab', function (ev) {
     if (!ev || ev.detail !== 'broll') return;
     if (!started) startBroll();
@@ -3945,8 +4061,7 @@
   if (dirInput && dirInput.addEventListener) {
     dirInput.addEventListener('change', function () {
       if (!started) return;
-      try { if (watcher) watcher.close(); } catch (e) {}
-      watcher = null;
+      unwatchAll();
       scan(true);
       watchFolder();
     });
@@ -3959,22 +4074,29 @@
   // moved, and cannot start before the folder exists — so it re-arms the
   // watcher whenever it is missing, and refreshes the badges once a minute.
   var watchTimer = null;
-  var watcher = null;
+  var watchers = {};   // folder → its fs.watch handle (the B-roll folder, the old one)
   function watchFolder() {
-    if (watcher || !fs || !fs.watch) return;
-    try {
-      var w = fs.watch(rootDir(), { recursive: true }, function () {
-        clearTimeout(watchTimer);
-        watchTimer = setTimeout(function () { scan(); }, 800);
-      });
-      if (w && w.on) {
-        w.on('error', function () {
-          try { w.close(); } catch (e) {}
-          if (watcher === w) watcher = null;   // the poll re-arms it
+    if (!fs || !fs.watch) return;
+    rootDirs().forEach(function (dir) {
+      if (watchers[dir]) return;
+      try {
+        var w = fs.watch(dir, { recursive: true }, function () {
+          clearTimeout(watchTimer);
+          watchTimer = setTimeout(function () { scan(); }, 800);
         });
-      }
-      watcher = w;
-    } catch (e) { /* folder missing: the poll retries */ }
+        if (w && w.on) {
+          w.on('error', function () {
+            try { w.close(); } catch (e) {}
+            if (watchers[dir] === w) delete watchers[dir];   // the poll re-arms it
+          });
+        }
+        watchers[dir] = w;
+      } catch (e) { /* folder missing: the poll retries */ }
+    });
+  }
+  function unwatchAll() {
+    for (var d in watchers) if (watchers.hasOwnProperty(d)) { try { watchers[d].close(); } catch (e) {} }
+    watchers = {};
   }
   if (brollShown()) startBroll();
 
@@ -3984,7 +4106,7 @@
     // Premiere that freezes it for up to a second on a big project — it ran
     // every minute even for someone who never opened this tab.
     if (!started || !brollShown()) return;
-    if (!watcher) watchFolder();
+    watchFolder();
     scan();
     // The "in project" badges go stale as soon as another project is opened,
     // or media is imported by any other route. Once a minute is enough.
