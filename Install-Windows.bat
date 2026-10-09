@@ -49,9 +49,25 @@ if not exist "%CEP%" goto failcopy
 
 rem Unzipped straight into Adobe's folder: deleting the old copy would delete this one.
 if /I "%SRC%"=="%DEST%" goto inplace
+rem The download sits INSIDE the installed folder: replacing that folder would
+rem delete this installer and the files it was about to copy.
+set "CHK=%SRC%"
+call set "CHK2=%%CHK:%DEST%\=%%"
+if /I not "%CHK2%"=="%CHK%" goto insidedest
+rem An ffmpeg put by hand into the installed bin folder survives a reinstall.
+set "KEEPBIN="
+if not exist "%DEST%\bin" goto nokeep
+if exist "%SRC%\bin" goto nokeep
+set "KEEPBIN=%TEMP%\IsmaOrganizer-bin-%RANDOM%"
+move "%DEST%\bin" "%KEEPBIN%" >nul 2>&1
+if errorlevel 1 set "KEEPBIN="
+:nokeep
 if exist "%DEST%" rmdir /s /q "%DEST%"
 xcopy "%SRC%" "%DEST%" /E /I /Q /Y >nul
 if errorlevel 1 goto failcopy
+if not defined KEEPBIN goto keptbin
+if not exist "%DEST%\bin" move "%KEEPBIN%" "%DEST%\bin" >nul 2>&1
+:keptbin
 rem Development files, not needed inside Premiere
 if exist "%DEST%\tests" rmdir /s /q "%DEST%\tests"
 if exist "%DEST%\tools" rmdir /s /q "%DEST%\tools"
@@ -108,9 +124,17 @@ echo.
 pause
 exit /b 0
 
+:insidedest
+echo [!] This download is inside the folder the panel installs to: "%DEST%"
+echo     Ce telechargement est dans le dossier ou le panneau s'installe.
+echo     Move it somewhere else, your Downloads for example, then run the installer again.
+echo     Deplace-le ailleurs, dans Telechargements par exemple, puis relance l'installateur.
+goto fail
+
 :failcopy
 echo [!] The copy failed. Is the disk full, or a file still open?
 echo     La copie a echoue. Le disque est-il plein, ou un fichier encore ouvert ?
+if defined KEEPBIN echo     Your ffmpeg folder was kept here: "%KEEPBIN%"
 :fail
 echo.
 pause

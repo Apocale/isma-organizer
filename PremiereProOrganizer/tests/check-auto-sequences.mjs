@@ -385,7 +385,10 @@ console.log('\n14) The B-roll folder leaves Downloads for the panel\'s own folde
   const r1 = rig({ platform: 'darwin', store: (h) => ({ prefsVersion: '3', 'f-watch-dir': PIN(h), 'f-seq-patterns': 'Hook' }) });
   check('existing user: new videos go to the panel\'s own folder', r1.el('f-watch-dir').value === APP(r1.HOME), r1.el('f-watch-dir').value);
   check('…the old Downloads/Pinterest is remembered, to stay listed', r1.store['broll-old-dir'] === PIN(r1.HOME), r1.store['broll-old-dir']);
-  check('…and the other settings are kept', r1.el('f-seq-patterns').value === 'Hook' && r1.store.prefsVersion === '4', r1.store.prefsVersion);
+  check('…and the other settings are kept', r1.el('f-seq-patterns').value === 'Hook', r1.el('f-seq-patterns').value);
+  // An older panel reinstalled over this one resets every text setting when
+  // prefsVersion is not 3 (found by the review of 2026-10-09): it stays at 3.
+  check('…prefsVersion stays 3, the move has its own mark', r1.store.prefsVersion === '3' && r1.store['broll-folder-moved'] === '1', r1.store.prefsVersion + ' / ' + r1.store['broll-folder-moved']);
   r1.cleanup();
 
   const r2 = rig({ platform: 'darwin', store: () => ({ prefsVersion: '3', 'f-watch-dir': '/Volumes/SSD/Broll' }) });
@@ -398,8 +401,19 @@ console.log('\n14) The B-roll folder leaves Downloads for the panel\'s own folde
   r3.cleanup();
 
   const r4 = rig({ platform: 'darwin', store: (h) => ({ prefsVersion: '4', 'f-watch-dir': APP(h), 'broll-old-dir': PIN(h), 'f-seq-patterns': 'Hook', 'f-video': '02 rushes' }) });
-  check('the next launch migrates nothing again: names and rules kept', r4.el('f-video').value === '02 rushes' && r4.el('f-seq-patterns').value === 'Hook', r4.el('f-video').value);
+  check('settings written by 2.7.2 (prefsVersion 4): names and rules kept', r4.el('f-video').value === '02 rushes' && r4.el('f-seq-patterns').value === 'Hook', r4.el('f-video').value);
+  check('…read as 3 from now on, the old folder still listed', r4.store.prefsVersion === '3' && r4.store['broll-old-dir'] === PIN(r4.HOME), r4.store.prefsVersion);
   r4.cleanup();
+
+  // 2.6 saved the settings only on a run or a change: someone who only used
+  // the B-roll tab has no 'f-watch-dir' at all — that meant Downloads/Pinterest.
+  const r6 = rig({ platform: 'darwin', store: () => ({ prefsVersion: '3' }) });
+  check('a user of the B-roll tab who never saved a setting keeps his old videos listed', r6.store['broll-old-dir'] === PIN(r6.HOME), String(r6.store['broll-old-dir']));
+  r6.cleanup();
+
+  const r7 = rig({ platform: 'darwin', store: (h) => ({ prefsVersion: '3', 'broll-folder-moved': '1', 'f-watch-dir': PIN(h) }) });
+  check('once moved, a Downloads/Pinterest chosen again by hand is respected', r7.el('f-watch-dir').value === PIN(r7.HOME) && !('broll-old-dir' in r7.store), r7.el('f-watch-dir').value);
+  r7.cleanup();
 
   const r5 = rig({ platform: 'win32', store: (h) => ({ prefsVersion: '3', 'f-watch-dir': PIN(h) }) });
   check('Windows: AppData\\Local\\IsmaOrganizer\\B-roll', /AppData[\\/]Local[\\/]IsmaOrganizer[\\/]B-roll$/.test(r5.el('f-watch-dir').value), r5.el('f-watch-dir').value);

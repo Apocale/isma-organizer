@@ -51,16 +51,32 @@ if ! mkdir -p "$CEP"; then
   finish 1
 fi
 
-if [ "$(cd "$DEST" 2>/dev/null && pwd -P)" = "$SRC" ]; then
+DEST_REAL="$(cd "$DEST" 2>/dev/null && pwd -P)"
+if [ -n "$DEST_REAL" ] && [ "$DEST_REAL" = "$SRC" ]; then
   # Unzipped straight into Adobe's folder: deleting the old copy would delete this one.
   say "[OK] The panel is already in Adobe's extensions folder." \
       "[OK] Le panneau est déjà dans le dossier des extensions d'Adobe."
+elif [ -n "$DEST_REAL" ] && case "$SRC/" in "$DEST_REAL"/*) true ;; *) false ;; esac; then
+  # The download sits INSIDE the installed folder: replacing that folder
+  # would delete this installer and the files it was about to copy.
+  say "[!] This download is inside the folder the panel installs to: $DEST" \
+      "[!] Ce téléchargement est dans le dossier où le panneau s'installe (ci-dessus)."
+  say "    Move it somewhere else (your Downloads, for example), then run the installer again." \
+      "    Déplace-le ailleurs (dans Téléchargements par exemple), puis relance l'installateur."
+  finish 1
 else
+  # An ffmpeg put by hand into the installed bin/ survives a reinstall.
+  KEEP=""
+  if [ -d "$DEST/bin" ] && [ ! -d "$SRC/bin" ]; then
+    KEEP="$(mktemp -d)" && mv "$DEST/bin" "$KEEP/bin" || KEEP=""
+  fi
   rm -rf "$DEST"
   if ! cp -R "$SRC" "$DEST"; then
+    [ -n "$KEEP" ] && mkdir -p "$DEST" && mv "$KEEP/bin" "$DEST/bin" 2>/dev/null
     say "[!] The copy failed. Is the disk full?" "[!] La copie a échoué. Le disque est-il plein ?"
     finish 1
   fi
+  if [ -n "$KEEP" ]; then mv "$KEEP/bin" "$DEST/bin" && rmdir "$KEEP"; fi
   # Development files, not needed inside Premiere
   rm -rf "$DEST/tests" "$DEST/tools" "$DEST/__pycache__"
   # A downloaded file carries Apple's quarantine flag. Premiere does not need it,

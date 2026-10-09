@@ -23,7 +23,10 @@ your timeline.
   words for both ("Hook", "Body"…).
 - Recognizes B-roll by name and folder: Pinterest and TikTok downloads, stock
   sites, DJI, GoPro and Osmo files, any folder called "B-roll".
-- Never touches the bins you made yourself. Every run can be undone.
+- Leaves the bins you made yourself as they are. One exception, off for new
+  users: with **Merge old and imported bins** on, a click on Organize also
+  empties the plugin's bins that an imported project left inside yours
+  (`Sources/02 video`…). Every run can be undone.
 - **Preview** shows what would move, and moves nothing.
 
 **B-roll tab**
@@ -87,8 +90,8 @@ organizing, and browsing and dragging the videos already in your B-roll folder.
     seconds), organize on a timer, when a project opens or after an import.
     All off until you turn them on.
   - *Sorting rules*: words that make a sequence always a main one (`01`) or
-    always nested (`08`), words for B-roll, SFX and voice, an Ignore list, and
-    whether clips get a label color.
+    always nested (`08`), words for B-roll, SFX and voice, an Ignore list,
+    whether clips get a label color, and *Merge old and imported bins*.
   - *Bin names*: rename any of the numbered bins.
   - *B-roll*: the B-roll folder, and **Auto-import**: whatever lands in that
     folder is imported into the open project and filed in `03 b-roll`.

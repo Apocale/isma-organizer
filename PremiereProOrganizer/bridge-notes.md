@@ -232,11 +232,17 @@ rebuilds that project's bins under the user's own "02 rushes & nests (jours)":
 a user bin, so it filed 4 items and said everything else was in place.
 
 The rule (`collectStrayBins` / `walkUserBin` in the `.jsx`): below a user bin,
-at any depth, a bin carrying a plugin name (a category; an old name only with
-*Merge old bins*) is an import leftover. Its content is filed like a new
-import and it goes once empty. Nothing else in the user's bins moves; a user
-bin goes only when this run left it empty (`emptiedBins` in the report). The
-automatic pass after a Nest does not walk the user's bins. This settles the
+at any depth, a bin carrying a plugin name (a NUMBERED category, or an old
+name — `isStrayBinName`) is an import leftover. Its content is filed like a
+new import and it goes once empty. Nothing else in the user's bins moves; a
+user bin goes only when this run left it empty (`emptiedBins` in the report).
+
+Narrowed after the review of 2026-10-09 (2.7.3): it runs only with *Merge old
+and imported bins* on (off for new users, who may keep a "02 video" inside a
+client bin on purpose; on for existing users) and only on the button and
+Preview — never in an automatic pass (24 000 clips in user bins cost 48 000
+host calls, ~2.4 s frozen). A category renamed to a plain word ("Music") does
+not count: "Client A/Music" is the user's. This settles the
 open question of 2026-09-30 for plugin-named bins only: the user's own named
 bins ("Rushes 10-1", the edits sitting in "Sources 10-4") stay untouched.
 

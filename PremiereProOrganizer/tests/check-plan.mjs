@@ -971,11 +971,30 @@ console.log('\n33) Bins an import left INSIDE the user\'s own bins are filed (2.
   const again = JSON.parse(t2.h.O.resetAndOrganize(payload('incremental', user)));
   check('a second click has nothing left to do', again.total === 0, String(again.total));
 
-  // a new user: old names ("video", "nested sequence"…) may be bins of their own
+  // A new user ("Merge old and imported bins" off): their bins are not walked
+  // at all — one may keep a "02 video" or a "video" inside a client bin on
+  // purpose (review of 2026-10-09).
   const t3 = build();
   t3.h.O.resetAndOrganize(payload('incremental', { ignored: ['Keep me'] }));
   check('new user: a bin named "video" inside their bin is left alone', t3.h.pathOf(t3.v1) === '02 rushes & nests (jours)/Sources 10-4/video', t3.h.pathOf(t3.v1));
-  check('new user: a numbered "08 nested sequence" inside their bin is still filed', t3.h.pathOf(t3.n7) === '08 nested sequence', t3.h.pathOf(t3.n7));
+  check('new user: a numbered "08 nested sequence" inside their bin too', t3.h.pathOf(t3.n7) === '02 rushes & nests (jours)/9-29 V1 edit/Sources 9-29/08 nested sequence', t3.h.pathOf(t3.n7));
+
+  // Only the button walks the user's bins: an automatic import or interval
+  // pass would freeze Premiere for seconds on a big project.
+  const t5 = build();
+  t5.h.O.resetAndOrganize(payload('incremental', Object.assign({ auto: 'import' }, user)));
+  check('automatic pass after an import: the user\'s bins are not walked', t5.h.pathOf(t5.v1) === '02 rushes & nests (jours)/Sources 10-4/video', t5.h.pathOf(t5.v1));
+
+  // A category renamed to a plain word is too common a bin name: "Music" for
+  // the audio bin must not take the user's own "Client A/Music".
+  const m = makeHost();
+  const clientA = m.bin('Client A'); m.move(clientA, m.root);
+  const theirMusic = m.bin('Music'); m.move(theirMusic, clientA);
+  const track = m.clip('their-track.mp3', '/Volumes/Audio/their-track.mp3'); m.move(track, theirMusic);
+  const renamed = JSON.parse(payload('incremental', { legacyBins: true }));
+  renamed.names.audio = 'Music';
+  m.O.resetAndOrganize(JSON.stringify(renamed));
+  check('a category renamed "Music" does not take the user\'s "Client A/Music"', m.pathOf(track) === 'Client A/Music' && !!m.binAt('Client A'), m.pathOf(track));
 
   // the automatic pass after a Nest stays instant: it never walks the user's bins
   const t4 = build();

@@ -118,7 +118,7 @@ if (typeof JSON !== "object" || JSON === null) { JSON = {}; }
 
 var IsmaOrganizer = (function () {
 
-var VERSION = "2.7.2";
+var VERSION = "2.7.3";
 
 // Étiquettes Premiere Pro : 0 Violet, 1 Iris, 2 Caribbean, 3 Lavender,
 // 4 Cerulean, 5 Forest, 6 Rose, 7 Mango, 8 Purple, 9 Blue, 10 Teal,
@@ -839,8 +839,12 @@ function collectEntries(ctx) {
         } catch (e) {}
     }
     // Les restes d'import posés DANS les chutiers de l'utilisateur (cf.
-    // collectStrayBins). Pas le passage après une Nest : il reste instantané.
-    if (!ctx.fast) collectStrayBins(ctx, entries);
+    // collectStrayBins) : seulement si « Merge old and imported bins » est
+    // allumé (un nouvel utilisateur a peut-être rangé un « 02 video » chez lui
+    // exprès), et seulement au bouton. Un passage automatique (Nest, import,
+    // minuteur) ne parcourt pas ses chutiers : relu le 09/10, 24 000 clips dans
+    // les chutiers de l'utilisateur coûtaient 48 000 appels, ~2,4 s figé.
+    if (!ctx.fast && !ctx.auto && ctx.legacyBins) collectStrayBins(ctx, entries);
     return entries;
 }
 
@@ -916,10 +920,11 @@ function isPluginBinName(ctx, nm) {
 // « 00 offline »…). Le bouton n'ouvrait jamais les chutiers de
 // l'utilisateur : 47 chutiers en double, 132 éléments éparpillés, et le
 // rapport disait « tout est déjà rangé ».
-//   · Un chutier qui porte un nom du plugin (une catégorie, ou un ancien nom
-//     si « Merge old bins » est allumé), à n'importe quelle profondeur sous un
-//     chutier de l'utilisateur, est un reste d'import : tout ce qu'il
-//     contient est rangé comme un nouvel import, et il disparaît une fois vide.
+//   · Avec « Merge old and imported bins » allumé, au bouton : un chutier qui
+//     porte un nom du plugin (catégorie numérotée ou ancien nom, cf.
+//     isStrayBinName), à n'importe quelle profondeur sous un chutier de
+//     l'utilisateur, est un reste d'import : tout ce qu'il contient est rangé
+//     comme un nouvel import, et il disparaît une fois vide.
 //   · Le reste ne bouge pas : ni « Rushes 10-1 », ni les séquences posées
 //     directement dans « Sources 10-4 ».
 //   · Un chutier de l'utilisateur qui ne menait QU'À de tels restes, et que ce
@@ -953,7 +958,7 @@ function walkUserBin(ctx, bin, parts, parentBin, entries) {
             var nm = String(ch[i].name);
             if (nm === REFRESH_BIN_NAME || isNameIgnored(nm, ctx.ignored)) continue;
             var here = parts.concat([nm]);
-            if (!isPluginBinName(ctx, nm)) {
+            if (!isStrayBinName(ctx, nm)) {
                 if (walkUserBin(ctx, ch[i], here, bin, entries)) found = true;
                 continue;
             }
@@ -984,6 +989,25 @@ function walkUserBin(ctx, bin, parts, parentBin, entries) {
         if (parentBin) ctx.owned.parent[bk] = parentBin;
     }
     return found;
+}
+
+// Ce qui signale, DANS les chutiers de l'utilisateur, un chutier laissé par
+// un import : une catégorie NUMÉROTÉE du plugin (« 02 video ») ou un ancien
+// nom (LEGACY_NAMES ; cette fonction n'est appelée qu'avec « Merge old and
+// imported bins » allumé). Une catégorie renommée en mot courant (« Music »)
+// ne compte pas : un « Client A/Music » est le chutier de l'utilisateur.
+function isStrayBinName(ctx, nm) {
+    for (var c in ctx.p.names) {
+        if (!ctx.p.names.hasOwnProperty(c) || !ctx.p.names[c]) continue;
+        if (/^\d{1,2}\s/.test(String(ctx.p.names[c])) && sameName(nm, ctx.p.names[c])) return true;
+    }
+    for (var lc in LEGACY_NAMES) {
+        if (!LEGACY_NAMES.hasOwnProperty(lc)) continue;
+        for (var j = 0; j < LEGACY_NAMES[lc].length; j++) {
+            if (sameName(nm, LEGACY_NAMES[lc][j])) return true;
+        }
+    }
+    return false;
 }
 
 // Un reste d'import dans nos chutiers : à nous pour le ménage — supprimé

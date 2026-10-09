@@ -828,12 +828,12 @@
             <span class="hint">Gives each category its label color. Turn off if you use label colors for your own status (approved, to review…). Undo puts the old colors back.</span>
         </div>
         <div class="field toggle">
-            <label for="f-legacy-bins">Merge old bins</label>
+            <label for="f-legacy-bins">Merge old and imported bins</label>
             <span class="switch">
                 <input type="checkbox" id="f-legacy-bins">
                 <span class="track"></span>
             </span>
-            <span class="hint">Bins made by older versions of this panel (<code>video</code>, <code>other</code>, <code>screenshots</code>, <code>styles</code>, <code>sequence</code>, <code>nested sequence</code>, <code>music &amp; sound effect</code>) are emptied into the numbered bins. Leave off if you named bins of your own like that.</span>
+            <span class="hint">Empties into the numbered bins the bins named like this panel's that are out of place: those made by older versions (<code>video</code>, <code>other</code>, <code>screenshots</code>, <code>styles</code>, <code>sequence</code>, <code>nested sequence</code>, <code>music &amp; sound effect</code>), and those an imported project leaves inside your own bins (<code>Sources/02 video</code>). Only when you click Organize. Leave off if you named or placed bins like that on purpose.</span>
         </div>
         </details>
 
@@ -1173,7 +1173,7 @@
                 var file = prefsFile();
                 if (!file) return;
                 var fsm = require('fs'), data = { prefsVersion: localStorage.getItem('prefsVersion') };
-                TEXT_KEYS.concat(CHECK_KEYS, ['broll-old-dir']).forEach(function(id) { data[id] = localStorage.getItem(id); });
+                TEXT_KEYS.concat(CHECK_KEYS, ['broll-old-dir', 'broll-folder-moved']).forEach(function(id) { data[id] = localStorage.getItem(id); });
                 var dir = file.replace(/[\/\\][^\/\\]+$/, '');
                 if (!fsm.existsSync(dir)) fsm.mkdirSync(dir, { recursive: true });
                 fsm.writeFileSync(file, JSON.stringify(data, null, 1));
@@ -1827,10 +1827,16 @@
         //  · 3 (2.6.0, the public release): automation, sounds, old-bin merging
         //    and the Finder tag became opt-in for NEW users. Someone who already
         //    used the panel keeps them as he had them.
+        //  prefsVersion stays at 3 since: an older panel reinstalled over this
+        //  one takes any other number for "very old" and resets every text
+        //  setting (2.7.2 wrote 4 — read as 3 below). Later moves get a key of
+        //  their own instead.
         try {
             restorePrefsFile();
             var pv = localStorage.getItem('prefsVersion');
-            if (pv !== '3' && pv !== '4') {
+            if (pv === '4') { localStorage.setItem('prefsVersion', '3'); pv = '3'; }
+            var hadPrefs = (pv !== null);
+            if (pv !== '3') {
                 var existing = (pv !== null);
                 if (pv !== '2') TEXT_KEYS.forEach(function(id) { localStorage.removeItem(id); });
                 if (existing) {
@@ -1841,16 +1847,20 @@
                 }
                 localStorage.setItem('prefsVersion', '3');
             }
-            //  · 4 (2.7.2): the B-roll folder leaves Downloads for the panel's own
-            //    folder. A setting still on the old default follows it; the old
-            //    folder stays listed and watched ('broll-old-dir'), nothing moves.
-            if (localStorage.getItem('prefsVersion') === '3') {
+            //  · 'broll-folder-moved' (2.7.2): the B-roll folder leaves Downloads
+            //    for the panel's own folder. Someone who used the panel before
+            //    and whose setting was the old default — or never saved, which
+            //    meant the same (2.6 saved settings only on a run or a change) —
+            //    follows it; the old folder stays listed, watched and imported
+            //    from ('broll-old-dir'), nothing moves. A new user never gets it:
+            //    Downloads is never read for them.
+            if (localStorage.getItem('broll-folder-moved') === null) {
                 var oldDefault = oldDefaultWatchDir(), wd = localStorage.getItem('f-watch-dir');
-                if (wd !== null && oldDefault && (wd === '' || dirKey(wd) === dirKey(oldDefault))) {
+                if (hadPrefs && oldDefault && (wd === null || wd === '' || dirKey(wd) === dirKey(oldDefault))) {
                     localStorage.setItem('f-watch-dir', '');
                     localStorage.setItem('broll-old-dir', oldDefault);
                 }
-                localStorage.setItem('prefsVersion', '4');
+                localStorage.setItem('broll-folder-moved', '1');
             }
         } catch (e) {}
 
@@ -2823,7 +2833,7 @@
 
   function scan(force) {
     if (!fs) { setStatus('Node unavailable', true); return 0; }
-    var root = rootDir(), dirs = rootDirs(), out = [], unreadable = 0;
+    var root = rootDir(), dirs = rootDirs(), out = [], unreadable = 0, listed = {};
 
     function walk(dir) {
       var entries;
@@ -2841,6 +2851,10 @@
         var full = pjoin(dir, name), st;
         try { st = fs.statSync(full); } catch (e) { continue; }
         if (st.isDirectory()) { walk(full); continue; }
+        // One folder inside the other (the B-roll folder set to ~/Downloads,
+        // the old one below it): each file once.
+        if (listed[pkey(full)]) continue;
+        listed[pkey(full)] = 1;
         if (/\.(crdownload|part|tmp|download|partial)$/i.test(name)) continue;
         var dot = name.lastIndexOf('.');
         if (dot === -1) continue;
