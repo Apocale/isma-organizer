@@ -42,7 +42,12 @@ while premiere_open; do
       "[!] Premiere Pro est ouvert. Quitte-le, puis appuie sur Entrée."
   say "    To install anyway, type i then Enter, and restart Premiere afterwards." \
       "    Pour installer quand même, tape i puis Entrée, et relance Premiere ensuite."
-  read -r answer
+  # No keyboard (run by a script or by Claude): stop instead of asking forever.
+  if ! read -r answer; then
+    say "[!] Nobody to answer: quit Premiere Pro, then run the installer again." \
+        "[!] Personne pour répondre : quitte Premiere Pro, puis relance l'installateur."
+    finish 1
+  fi
   case "$answer" in i|I) break ;; esac
 done
 

@@ -5,3 +5,4 @@ __pycache__/
 node_modules/
 # ffmpeg is installed by each user, or dropped here by hand: never committed
 PremiereProOrganizer/bin/
+site/dist/

@@ -4,6 +4,9 @@ A free panel for **Adobe Premiere Pro**. One click sorts your project into
 numbered bins, and the B-roll you saved from Pinterest is one drag away from
 your timeline.
 
+**Website: [apocale.github.io/isma-organizer](https://apocale.github.io/isma-organizer/)**:
+watch it file a project, and try it in your browser on a demo project.
+
 <img src="docs/screenshot-organize.jpg" width="400" alt="The Organize tab after a Preview: 20 items would move, by category">
 
 *Preview on a demo project: nothing moves until you click Apply.*
@@ -152,10 +155,14 @@ Pinterest"). Delete it too only if no project uses them any more.
 
 - Design notes: `PremiereProOrganizer/bridge-notes.md` (Organize) and
   `PremiereProOrganizer/broll-notes.md` (B-roll).
+- `site/` is the website. `python3 site/build.py` builds it into `site/dist`,
+  with the panel's real `OrganizeFilesInProject.jsx` for the in-browser demo;
+  `site/dist` is published on the `gh-pages` branch.
 
 ## En français
 
-Panneau gratuit pour Premiere Pro. **Organize** range le projet en chutiers
+Panneau gratuit pour Premiere Pro. Site :
+[apocale.github.io/isma-organizer](https://apocale.github.io/isma-organizer/). **Organize** range le projet en chutiers
 numérotés en un clic (les séquences imbriquées à part, tout est annulable).
 **B-roll** affiche tes vidéos Pinterest enregistrées : clic pour voir en grand,
 glisser sur la timeline.
