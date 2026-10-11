@@ -325,7 +325,7 @@ section[id]{scroll-margin-top:calc(var(--nav) + 14px)}
 .ip .org.cta{animation:cta 1.6s ease-in-out infinite}
 @keyframes cta{50%{box-shadow:inset 0 1px 0 rgba(255,255,255,.75),0 0 0 4px rgba(98,199,101,.45),0 0 18px rgba(98,199,101,.8)}}
 .demo-foot{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-top:20px;font-size:13.5px;color:var(--soft)}
-@media (max-width:900px){.demo-win .pr{flex-direction:column;height:auto}.demo-win .ipg{order:-1;flex:0 0 auto}.demo-win .pj{flex:0 0 auto;height:430px}.demo-foot{flex-direction:column;align-items:flex-start}}
+@media (max-width:900px){.demo-win .ip.hinting{padding-bottom:92px}.demo-win .pr{flex-direction:column;height:auto}.demo-win .ipg{order:-1;flex:0 0 auto}.demo-win .pj{flex:0 0 auto;height:430px}.demo-foot{flex-direction:column;align-items:flex-start}}
 
 /* ---- 03 bins: an Explorer window in Details view ---- */
 .xp{--xcols:minmax(210px,260px) minmax(0,1fr)}
@@ -715,7 +715,7 @@ section[id]{scroll-margin-top:calc(var(--nav) + 14px)}
         </div>
         <div class="pg ipg" id="demo-ipg">
           <div class="pg-tabs" aria-hidden="true"><span class="pg-tab on">Isma Organizer<svg><use href="#pr-ham"/></svg></span></div>
-          <div class="ip" role="region" aria-label="The Isma Organizer panel"><div class="balloon" id="d-hint" role="note"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="9" fill="#2d7ee0" stroke="#1a56a3"/><path d="M10 5.2v.1M10 8.5v6.3" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/></svg><b>Try it here</b>Click <b style="display:inline">▶ Organize project</b>: the project on the left files itself.</div><i class="ipb b1"></i><i class="ipb b2"></i><i class="ipb b3"></i><div class="title" aria-hidden="true">Isma Organizer</div><div class="tabs" aria-hidden="true"><span class="on">Organize</span><span>B-roll</span></div>
+          <div class="ip" role="region" aria-label="The Isma Organizer panel"><div class="balloon" id="d-hint" role="note"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="9" fill="#2d7ee0" stroke="#1a56a3"/><path d="M10 5.2v.1M10 8.5v6.3" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/></svg><b>Try it here</b>Click <b style="display:inline">▶ Organize project</b> and watch the Project panel sort itself.</div><i class="ipb b1"></i><i class="ipb b2"></i><i class="ipb b3"></i><div class="title" aria-hidden="true">Isma Organizer</div><div class="tabs" aria-hidden="true"><span class="on">Organize</span><span>B-roll</span></div>
             <div class="container">
               <p class="intro" id="d-intro">Sorts this project into numbered bins (01 sequence … 10 exports). Start with <b>Preview</b>: nothing moves until you click <b>Apply</b>, and every run can be undone.</p>
               <div class="btns"><div class="btns-row"><button class="org" id="d-org" type="button">▶ Organize project</button><button class="pre" id="d-pre" type="button">Preview</button></div><button class="und" id="d-und" type="button" hidden>↶ Undo last organize</button></div>
@@ -1268,7 +1268,7 @@ section[id]{scroll-margin-top:calc(var(--nav) + 14px)}
       hint.style.left = Math.max(6, b.left - a.left + 6) + 'px';
       hint.style.top = (b.bottom - a.top + ip.scrollTop + 12) + 'px';
     }
-    function showHint(on) { hintWanted = on; bOrg.classList.toggle('cta', on && !reduce); if (on) placeHint(); hint.classList.toggle('on', on && seen); }
+    function showHint(on) { hintWanted = on; bOrg.classList.toggle('cta', on && !reduce); hint.parentNode.classList.toggle('hinting', on); if (on) placeHint(); hint.classList.toggle('on', on && seen); }
     if ('IntersectionObserver' in window) {
       var hio = new IntersectionObserver(function (es) { if (es[0].isIntersecting && !seen) { seen = true; showHint(hintWanted); } }, { threshold: 0.4 });
       hio.observe(document.querySelector('.demo-win'));
