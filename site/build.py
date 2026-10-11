@@ -20,7 +20,11 @@ with open(os.path.join(DIST, 'engine.js'), 'w', encoding='utf-8') as f:
 src_assets = os.path.join(HERE, 'assets')
 if os.path.isdir(src_assets):
     for name in os.listdir(src_assets):
-        shutil.copyfile(os.path.join(src_assets, name), os.path.join(DIST, 'assets', name))
+        src, dst = os.path.join(src_assets, name), os.path.join(DIST, 'assets', name)
+        if os.path.isdir(src):   # assets/broll: the demo clips (free Pexels videos)
+            shutil.copytree(src, dst, dirs_exist_ok=True)
+        else:
+            shutil.copyfile(src, dst)
 # files served at the site root: llms.txt (the summary AI agents read), sitemap.xml
 src_public = os.path.join(HERE, 'public')
 if os.path.isdir(src_public):
