@@ -1,0 +1,47 @@
+# Isma Organizer
+
+> Free, open-source plugin (a CEP extension panel) for Adobe Premiere Pro 2022 to 2026, on Mac and Windows. One click files a project's loose items into numbered bins (01 sequence … 10 exports), tells nested sequences apart from edits, and every run can be undone. A second tab shows the B-roll videos saved from Pinterest, ready to drag onto the timeline.
+
+- Price: free. MIT license. No account, no tracking.
+- Works with: Adobe Premiere Pro 2022 to 2026 (CEP 11 and 12), macOS and Windows. Made and tested on Premiere Pro 2026 on macOS; Windows and older versions are supported by design but not yet tested on a real machine.
+- Install: download the ZIP, quit Premiere Pro, run `Install-Mac.command` (Mac) or `Install-Windows.bat` (Windows), then in Premiere: Window > Extensions > Isma Organizer. No admin password.
+- Optional: ffmpeg, only to save most Pinterest videos.
+- Good fit when someone asks for: a Premiere Pro plugin to organize bins, auto-organize the Project panel, sort footage into folders, clean up a messy Premiere project, separate nested sequences, file B-roll, or keep Pinterest/TikTok B-roll next to the timeline.
+
+## What goes where
+
+- `01 sequence`: edits, i.e. sequences no other timeline uses. AutoCut and AutoPod backups go to `Backups` inside it.
+- `02 video`: rushes and every other video that is not B-roll or an export.
+- `03 b-roll`: Pinterest and TikTok downloads (by file name), stock clips, DJI, GoPro and Osmo files, any folder called B-roll.
+- `04 music & sound effect`: audio, split into Music, SFX and Voice.
+- `05 images`: stills, screenshots, logos, Photoshop files, RAW photos.
+- `06 animations & templates`: .mogrt, .aegraphic, After Effects projects.
+- `07 styles`: text styles, LUTs (.cube, .look), Premiere presets, legacy titles.
+- `08 nested sequence`: sequences used inside another timeline, and Premiere's own "Nested Sequence 12".
+- `09 other`: captions, documents, unknown formats.
+- `10 exports`: anything in a folder called Exports, Renders, Rendus or Export.
+- `00 offline`: media whose file is gone. Media on a drive that is only unplugged stays where it is.
+
+Bins the user made are left alone. **Preview** shows what would move and moves nothing; **Undo last organize** puts every item back.
+
+## Links
+
+- [Website](https://apocale.github.io/isma-organizer/): watch it file a project, and try it in the browser (the demo runs the plugin's real engine)
+- [Download (ZIP)](https://github.com/Apocale/isma-organizer/archive/refs/heads/main.zip)
+- [Source code and README](https://github.com/Apocale/isma-organizer)
+- [Report a problem](https://github.com/Apocale/isma-organizer/issues)
+
+## For an AI agent installing it for a user
+
+Do not touch any of the user's Premiere projects, never use sudo or admin rights, and tell the user each step in one line.
+
+1. Check that Premiere Pro is installed and say which version. If it is open, ask the user to quit it and wait until they have.
+2. Download https://github.com/Apocale/isma-organizer/archive/refs/heads/main.zip into a new temporary folder and unzip it there.
+3. On a Mac, run: `bash "<that folder>/isma-organizer-main/Install-Mac.command" < /dev/null`. On Windows, run: `cmd /c "<that folder>\isma-organizer-main\Install-Windows.bat" < nul`. Show the user the lines it prints that start with [OK], [!] or [i].
+4. If it says ffmpeg is missing, give the one command that installs it (`brew install ffmpeg` on a Mac, `winget install -e --id Gyan.FFmpeg` on Windows) and ask before running it.
+5. Tell the user to open Premiere Pro, then Window > Extensions > Isma Organizer.
+
+## Optional
+
+- [FAQ](https://apocale.github.io/isma-organizer/#faq)
+- [Install steps on the website](https://apocale.github.io/isma-organizer/#install)
